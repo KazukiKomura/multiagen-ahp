@@ -1,4 +1,0 @@
-mode: explain
-episodes: 20
-n_agents: 5
-mlflow: false

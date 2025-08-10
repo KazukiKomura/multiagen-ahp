@@ -1,7 +1,0 @@
-{
-  "run_dir": "/Users/kazukikomura/Developer/research/multiagentahp/runs/20250808_122938",
-  "policy": "/Users/kazukikomura/Developer/research/multiagentahp/runs/20250808_122938/policy.json",
-  "ips_mid": -0.008004709616061815,
-  "ips_lb": -0.008199875628329984,
-  "ips_ub": -0.007815925674661897
-}
