@@ -1,0 +1,14 @@
+artifact_uri: file:///Users/kazukikomura/Developer/research/multiagentahp/mlruns/273026749289612147/1088807a101042f89d79e4b8442371af/artifacts
+end_time: 1754618608297
+entry_point_name: ''
+experiment_id: '273026749289612147'
+lifecycle_stage: active
+run_id: 1088807a101042f89d79e4b8442371af
+run_name: run_20250808_110320
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1754618600653
+status: 3
+tags: []
+user_id: kazukikomura

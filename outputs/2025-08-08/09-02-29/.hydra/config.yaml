@@ -1,0 +1,10 @@
+mode: full
+episodes: 80
+n_agents: 5
+ucb_alpha: 0.6
+ucb_softmax_temp: 0.7
+safety_ci_increase_max: 0.03
+safety_tau_drop_max: 0.05
+ope_w_clip: 5.0
+ope_ridge_lam: 5.0
+mlflow: false
