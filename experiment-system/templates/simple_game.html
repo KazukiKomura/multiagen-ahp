@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>大学選択協調ゲーム</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            background-color: #f5f5f5;
+        }
+        .header {
+            background-color: #e6ccff;
+            padding: 10px;
+            border: 2px solid #9966cc;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .game-info {
+            background-color: #cce6ff;
+            border: 2px solid #0066cc;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+        .action-section {
+            background-color: white;
+            border: 2px solid #666;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+        .action-row {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+            gap: 10px;
+        }
+        .action-row label {
+            min-width: 120px;
+            font-weight: bold;
+        }
+        select {
+            padding: 5px;
+            font-size: 14px;
+            min-width: 150px;
+        }
+        .action-button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        .action-button:hover {
+            background-color: #45a049;
+        }
+        .proposal-button {
+            background-color: #2196F3;
+        }
+        .proposal-button:hover {
+            background-color: #1976D2;
+        }
+        .chat-section {
+            background-color: #e8f5e8;
+            border: 2px solid #4CAF50;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+        .chat-input {
+            width: 80%;
+            padding: 8px;
+            font-size: 14px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+        }
+        .send-button {
+            padding: 8px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .history-section {
+            background-color: white;
+            border: 2px solid #666;
+            padding: 15px;
+            border-radius: 5px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+        .history-table th,
+        .history-table td {
+            border: 1px solid #ccc;
+            padding: 5px;
+            text-align: left;
+        }
+        .history-table th {
+            background-color: #f0f0f0;
+        }
+        .human-action {
+            background-color: #e6f3ff;
+        }
+        .ai-action {
+            background-color: #fff2e6;
+        }
+        .proposal {
+            background-color: #f0f0ff;
+        }
+        .quit-section {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .quit-button {
+            background-color: #f44336;
+            color: white;
+            padding: 10px 30px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .notification {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            display: none;
+        }
+        .proposal-notification {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+        }
+        .accept-reject-buttons {
+            margin-top: 10px;
+        }
+        .accept-button {
+            background-color: #28a745;
+            color: white;
+            padding: 8px 20px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        .reject-button {
+            background-color: #dc3545;
+            color: white;
+            padding: 8px 20px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div>
+            <strong>あなたの役割:</strong> 人間プレイヤー
+        </div>
+        <div>
+            <strong>残り時間:</strong> <span id="timer">15:00</span>
+        </div>
+        <div>
+            <strong>あなたのスコア:</strong> <span id="userScore">0</span>
+        </div>
+        <div>
+            <strong>グループスコア:</strong> <span id="groupScore">0</span>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="game-info">
+            <p>これは大学選択に関する人間とAIの協調的意思決定シミュレーションです。</p>
+            <ul>
+                <li>あなたは<strong>人間プレイヤー</strong>の役割を担当します</li>
+                <li>3名のAIエージェント（アカデミックAI、プラクティカルAI、バランスAI）と協力します</li>
+                <li>各基準の重要度調整や大学の評価変更を通じて、グループ合意を目指します</li>
+                <li>チャットでのみコミュニケーションを行います</li>
+                <li>最終的な合意内容と時間に基づいてスコアが決まります</li>
+            </ul>
+        </div>
+
+        <!-- Notification area -->
+        <div id="notification" class="notification">
+            <!-- Notifications will appear here -->
+        </div>
+
+        <!-- Action selection section -->
+        <div class="action-section">
+            <h3>アクション選択</h3>
+            
+            <div class="action-row">
+                <label>基準:</label>
+                <select id="criterionSelect">
+                    <option value="">-- 基準を選択 --</option>
+                    <option value="0">学術レベル</option>
+                    <option value="1">費用</option>
+                    <option value="2">立地</option>
+                    <option value="3">就職実績</option>
+                </select>
+            </div>
+            
+            <div class="action-row">
+                <label>大学:</label>
+                <select id="universitySelect">
+                    <option value="">-- 大学を選択 --</option>
+                    <option value="0">A大学</option>
+                    <option value="1">B大学</option>
+                    <option value="2">C大学</option>
+                </select>
+            </div>
+            
+            <div class="action-row">
+                <label>アクション:</label>
+                <select id="actionSelect">
+                    <option value="">-- アクションを選択 --</option>
+                    <option value="weight_increase">基準重要度を上げる</option>
+                    <option value="weight_decrease">基準重要度を下げる</option>
+                    <option value="eval_increase">大学評価を上げる</option>
+                    <option value="eval_decrease">大学評価を下げる</option>
+                </select>
+            </div>
+            
+            <div class="action-row">
+                <button class="action-button" onclick="executeAction()">実行</button>
+                <button class="action-button proposal-button" onclick="makeProposal()">提案として送信</button>
+            </div>
+        </div>
+
+        <!-- Chat section -->
+        <div class="chat-section">
+            <h3>チャット</h3>
+            <div style="margin-bottom: 10px;">
+                <input type="text" id="chatInput" class="chat-input" placeholder="AIエージェントとのメッセージを入力してください..." maxlength="200">
+                <button class="send-button" onclick="sendMessage()">送信</button>
+            </div>
+            <small>文字数制限: 200文字</small>
+        </div>
+
+        <!-- Action history -->
+        <div class="history-section">
+            <h3>アクション履歴</h3>
+            <table class="history-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>実行者</th>
+                        <th>アクション</th>
+                        <th>詳細</th>
+                    </tr>
+                </thead>
+                <tbody id="historyTableBody">
+                    <tr class="ai-action">
+                        <td>1</td>
+                        <td>アカデミックAI</td>
+                        <td>メッセージ</td>
+                        <td>学術レベルは最重要です。A大学の研究力を重視しましょう。</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Quit section -->
+        <div class="quit-section">
+            <button class="quit-button" onclick="quitGame()">
+                すぐにゲームを終了する
+            </button>
+        </div>
+    </div>
+
+    <script>
+        let actionCounter = 2;
+        let remainingTime = 15 * 60; // 15 minutes in seconds
+        let gameTimer;
+
+        // Start timer
+        function startTimer() {
+            gameTimer = setInterval(() => {
+                remainingTime--;
+                const minutes = Math.floor(remainingTime / 60);
+                const seconds = remainingTime % 60;
+                document.getElementById('timer').textContent = 
+                    `${minutes}:${seconds.toString().padStart(2, '0')}`;
+                
+                if (remainingTime <= 0) {
+                    endGame();
+                }
+            }, 1000);
+        }
+
+        function executeAction() {
+            const criterion = document.getElementById('criterionSelect').value;
+            const university = document.getElementById('universitySelect').value;
+            const action = document.getElementById('actionSelect').value;
+            
+            if (!action) {
+                alert('アクションを選択してください');
+                return;
+            }
+            
+            let actionText = '';
+            let details = '';
+            
+            if (action.startsWith('weight_')) {
+                if (!criterion) {
+                    alert('基準を選択してください');
+                    return;
+                }
+                const criteriaNames = ['学術レベル', '費用', '立地', '就職実績'];
+                const actionType = action === 'weight_increase' ? '重要度UP' : '重要度DOWN';
+                actionText = `${actionType}`;
+                details = `${criteriaNames[criterion]}の重要度を${action === 'weight_increase' ? '上げ' : '下げ'}ました`;
+            } else {
+                if (!criterion || !university) {
+                    alert('基準と大学を選択してください');
+                    return;
+                }
+                const criteriaNames = ['学術レベル', '費用', '立地', '就職実績'];
+                const universityNames = ['A大学', 'B大学', 'C大学'];
+                const actionType = action === 'eval_increase' ? '評価UP' : '評価DOWN';
+                actionText = `${actionType}`;
+                details = `${universityNames[university]}の${criteriaNames[criterion]}評価を${action === 'eval_increase' ? '上げ' : '下げ'}ました`;
+            }
+            
+            addToHistory('あなた', actionText, details, 'human-action');
+            
+            // Simulate AI response after human action
+            setTimeout(simulateAIResponse, 1000 + Math.random() * 2000);
+            
+            // Update scores (simulate)
+            updateScores();
+            
+            // Clear selections
+            document.getElementById('criterionSelect').value = '';
+            document.getElementById('universitySelect').value = '';
+            document.getElementById('actionSelect').value = '';
+        }
+
+        function makeProposal() {
+            const criterion = document.getElementById('criterionSelect').value;
+            const university = document.getElementById('universitySelect').value;
+            const action = document.getElementById('actionSelect').value;
+            
+            if (!action) {
+                alert('提案するアクションを選択してください');
+                return;
+            }
+            
+            let proposalText = '';
+            
+            if (action.startsWith('weight_')) {
+                if (!criterion) {
+                    alert('基準を選択してください');
+                    return;
+                }
+                const criteriaNames = ['学術レベル', '費用', '立地', '就職実績'];
+                proposalText = `${criteriaNames[criterion]}の重要度を${action === 'weight_increase' ? '上げる' : '下げる'}ことを提案します`;
+            } else {
+                if (!criterion || !university) {
+                    alert('基準と大学を選択してください');
+                    return;
+                }
+                const criteriaNames = ['学術レベル', '費用', '立地', '就職実績'];
+                const universityNames = ['A大学', 'B大学', 'C大学'];
+                proposalText = `${universityNames[university]}の${criteriaNames[criterion]}評価を${action === 'eval_increase' ? '上げる' : '下げる'}ことを提案します`;
+            }
+            
+            addToHistory('あなた', '提案', proposalText, 'proposal');
+            
+            // Clear selections
+            document.getElementById('criterionSelect').value = '';
+            document.getElementById('universitySelect').value = '';
+            document.getElementById('actionSelect').value = '';
+            
+            // Simulate AI response to proposal
+            setTimeout(() => simulateProposalResponse(proposalText), 2000 + Math.random() * 3000);
+        }
+
+        function sendMessage() {
+            const messageInput = document.getElementById('chatInput');
+            const message = messageInput.value.trim();
+            
+            if (!message) {
+                alert('メッセージを入力してください');
+                return;
+            }
+            
+            addToHistory('あなた', 'メッセージ', message, 'human-action');
+            messageInput.value = '';
+            
+            // Simulate AI chat response
+            setTimeout(simulateAIChatResponse, 1000 + Math.random() * 2000);
+        }
+
+        function simulateAIResponse() {
+            const aiAgents = ['アカデミックAI', 'プラクティカルAI', 'バランスAI'];
+            const responses = [
+                'その判断には賛成です',
+                '少し疑問があります',
+                'バランスを考えてはいかがでしょうか',
+                '別の視点も考慮してください',
+                '良い提案だと思います'
+            ];
+            
+            const agent = aiAgents[Math.floor(Math.random() * aiAgents.length)];
+            const response = responses[Math.floor(Math.random() * responses.length)];
+            
+            addToHistory(agent, 'メッセージ', response, 'ai-action');
+        }
+
+        function simulateAIChatResponse() {
+            const aiAgents = ['アカデミックAI', 'プラクティカルAI', 'バランスAI'];
+            const responses = [
+                'なるほど、興味深い意見ですね',
+                'その観点は考えていませんでした',
+                'データに基づいて考えてみましょう',
+                '他の可能性も検討してみては？',
+                'グループ全体の利益を考えましょう'
+            ];
+            
+            const agent = aiAgents[Math.floor(Math.random() * aiAgents.length)];
+            const response = responses[Math.floor(Math.random() * responses.length)];
+            
+            addToHistory(agent, 'メッセージ', response, 'ai-action');
+        }
+
+        function simulateProposalResponse(proposal) {
+            const aiAgents = ['アカデミックAI', 'プラクティカルAI', 'バランスAI'];
+            const agent = aiAgents[Math.floor(Math.random() * aiAgents.length)];
+            
+            // Show notification about the proposal response
+            const notification = document.getElementById('notification');
+            notification.className = 'notification proposal-notification';
+            notification.style.display = 'block';
+            notification.innerHTML = `
+                <strong>${agent}からの返答:</strong><br>
+                "${proposal}" について検討しました。<br>
+                <div class="accept-reject-buttons">
+                    <button class="accept-button" onclick="handleProposalResponse(true, '${agent}')">同意する</button>
+                    <button class="reject-button" onclick="handleProposalResponse(false, '${agent}')">反対する</button>
+                </div>
+            `;
+        }
+
+        function handleProposalResponse(accepted, agent) {
+            const result = accepted ? '同意' : '反対';
+            addToHistory(agent, '提案返答', `提案に${result}しました`, 'ai-action');
+            
+            // Hide notification
+            document.getElementById('notification').style.display = 'none';
+            
+            if (accepted) {
+                updateScores();
+            }
+        }
+
+        function addToHistory(actor, action, details, className) {
+            const tableBody = document.getElementById('historyTableBody');
+            const row = document.createElement('tr');
+            row.className = className;
+            row.innerHTML = `
+                <td>${actionCounter++}</td>
+                <td>${actor}</td>
+                <td>${action}</td>
+                <td>${details}</td>
+            `;
+            tableBody.appendChild(row);
+            
+            // Scroll to bottom
+            const historySection = document.querySelector('.history-section');
+            historySection.scrollTop = historySection.scrollHeight;
+        }
+
+        function updateScores() {
+            // Simulate score updates
+            const userScore = Math.floor(Math.random() * 50) + 250;
+            const groupScore = Math.floor(Math.random() * 30) + 270;
+            
+            document.getElementById('userScore').textContent = userScore;
+            document.getElementById('groupScore').textContent = groupScore;
+        }
+
+        function quitGame() {
+            if (confirm('本当にゲームを終了しますか？')) {
+                clearInterval(gameTimer);
+                alert('ゲームが終了しました。結果ページに移動します。');
+                // In real implementation, would navigate to results page
+                window.location.href = '/results';
+            }
+        }
+
+        function endGame() {
+            clearInterval(gameTimer);
+            alert('時間終了！結果ページに移動します。');
+            // In real implementation, would navigate to results page
+            window.location.href = '/results';
+        }
+
+        // Initialize
+        window.onload = function() {
+            startTimer();
+            updateScores();
+            
+            // Load AHP data from previous page if available
+            const ahpData = localStorage.getItem('ahpComparisons');
+            if (ahpData) {
+                console.log('AHP Comparisons:', JSON.parse(ahpData));
+                // In real implementation, would use this data to initialize weights
+            }
+        };
+
+        // Handle Enter key in chat input
+        document.getElementById('chatInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+</html>

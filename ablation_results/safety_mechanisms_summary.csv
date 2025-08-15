@@ -1,7 +1,0 @@
-experiment,final_entropy,single_dominance,final_consensus,positive_bias,s_type_ratio,final_si_mean
-baseline,0.9943,0.2423,0.0000,0.5014,0.8181,0.6746
-no_veto,0.9943,0.2423,0.0000,0.5014,0.8181,0.6746
-no_floor,0.9943,0.2423,0.0000,0.5014,0.8181,0.6746
-no_ci_aware,0.9943,0.2423,0.0000,0.5014,0.8181,0.6746
-no_veto_floor,0.9943,0.2423,0.0000,0.5014,0.8181,0.6746
-no_safety,0.9943,0.2423,0.0000,0.5014,0.8181,0.6746

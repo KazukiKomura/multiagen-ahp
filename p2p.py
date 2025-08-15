@@ -555,7 +555,7 @@ def train_ppo(
     N=4, A=3, C=3, steps_per_update=64, updates=60,
     eta=0.06, gamma=0.95, gae_lam=0.95, clip_eps=0.2,
     pi_lr=3e-4, vf_lr=5e-4, pi_epochs=4, minibatch_frac=0.5, seed=123,
-    eval_every=10, val_steps=64, save_dir="artifacts", check_invariants=CHECK_INVARIANTS_DEFAULT,
+    eval_every=10, val_steps=64, save_dir="models", check_invariants=CHECK_INVARIANTS_DEFAULT,
     export_templates=False
 ):
     os.makedirs(save_dir, exist_ok=True)
@@ -810,7 +810,7 @@ if __name__ == "__main__":
     p.add_argument("--seed", type=int, default=123)
     p.add_argument("--eval_every", type=int, default=10)
     p.add_argument("--val_steps", type=int, default=64)
-    p.add_argument("--save_dir", type=str, default="artifacts")
+    p.add_argument("--save_dir", type=str, default="models")
     p.add_argument("--check_invariants", type=int, default=int(CHECK_INVARIANTS_DEFAULT))
     p.add_argument("--export_templates", action="store_true")
     args = p.parse_args()
