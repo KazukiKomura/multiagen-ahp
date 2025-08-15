@@ -11,6 +11,7 @@ from typing import List, Tuple, Dict, Any
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import argparse, json, time
 
 # ===================== Utility =====================
 
@@ -20,6 +21,29 @@ torch.manual_seed(42)
 def normalize_simplex(v: np.ndarray) -> np.ndarray:
     v = np.clip(v, 1e-12, None)
     return v / v.sum()
+
+def project_simplex_with_floor(v: np.ndarray, floor: np.ndarray) -> np.ndarray:
+    """floor_i を下回らず、かつ総和=1 となるように射影する。余剰質量を (v-floor)^+ に比例配分。"""
+    v = np.asarray(v, dtype=np.float64)
+    floor = np.asarray(floor, dtype=np.float64)
+    assert v.shape == floor.shape, "floor shape mismatch"
+    assert np.all(floor >= 0.0), "floor must be non-negative"
+    s_floor = float(floor.sum())
+    # 余剰質量 r
+    r = 1.0 - s_floor
+    if r < 0.0:
+        # floor合計が1を超える場合 -> 等分でOK (理論上起こらない)
+        return normalize_simplex(floor)
+    surplus = np.maximum(v - floor, 0.0)
+    tot = float(surplus.sum())
+    if tot < 1e-12:
+        # v がすべて floor 以下
+        n = len(v)
+        return floor + r * (np.ones(n, dtype=np.float64) / n)
+    out = floor + (r * surplus / tot)
+    # 数値安定化
+    out = np.clip(out, floor, 1.0)
+    return normalize_simplex(out)
 
 def pearson_scaled(x: np.ndarray, y: np.ndarray) -> float:
     x = np.asarray(x); y = np.asarray(y)
@@ -35,6 +59,33 @@ def weight_entropy(w: np.ndarray) -> float:
     w = np.clip(w, 1e-12, 1.0)
     H = -np.sum(w * np.log(w))
     return H / np.log(len(w))  # [0,1] 正規化
+
+# === Preflight / invariant check toggle via env or CLI ===
+CHECK_INVARIANTS_DEFAULT = bool(int(os.getenv("CHECK_INVARIANTS", "1")))
+# ============== Invariant Checks (Preflight) ==============
+
+def assert_state(node_id: int, st: "NodeState"):
+    # w: simplex + floor
+    assert np.isfinite(st.w).all(), f"w nan/inf at node {node_id}"
+    assert abs(st.w.sum() - 1.0) < 1e-6, f"w not simplex at node {node_id}"
+    assert np.all(st.w >= st.w_floor - 1e-12), f"w below floor at node {node_id}"
+    # S: per-criterion simplex + tau floor
+    A, C = st.S.shape
+    for c in range(C):
+        col = st.S[:, c]
+        assert np.isfinite(col).all(), f"S nan/inf at node {node_id}, c={c}"
+        assert abs(col.sum() - 1.0) < 1e-6, f"S col not simplex at node {node_id}, c={c}"
+        assert np.all(col >= st.tau[:, c] - 1e-12), f"S below tau at node {node_id}, c={c}"
+    # CI finite
+    assert np.isfinite(st.CIcrit), f"CI not finite at node {node_id}"
+
+def apply_floor_and_normalize_columns(S: np.ndarray, tau: np.ndarray) -> np.ndarray:
+    """列ごとに project_simplex_with_floor を適用。"""
+    A, C = S.shape
+    S2 = S.copy()
+    for c in range(C):
+        S2[:, c] = project_simplex_with_floor(S2[:, c], tau[:, c])
+    return S2
 
 # ============== AHP: Pairwise & CI =================
 
@@ -129,36 +180,41 @@ class Arg:
 def conflicts(a: Arg, b: Arg) -> bool:
     if a.kind != b.kind: return False
     return (a.target == b.target) and (a.sign != b.sign)
-
 def effective_attack_personal(att: Arg, tgt: Arg,
                               w: np.ndarray,
                               veto_crit: set,
                               w_floor: np.ndarray,
                               S: np.ndarray,
-                              tau: np.ndarray) -> bool:
+                              tau: np.ndarray,
+                              stats: Dict[str,int] = None) -> bool:
+    """個人VAFの攻撃可否判定。ブロック理由を stats にカウントする。"""
     # Veto: その人にとって“下げ”は無効
     if tgt.kind == 'w' and att.sign == -1 and (tgt.target[1] in veto_crit):
+        if stats is not None: stats["veto"] = stats.get("veto",0) + 1
         return False
-    # フロア：これ以上下げるのは無効
+    # フロア（重み）
     if tgt.kind == 'w' and att.sign == -1 and w[tgt.target[1]] <= w_floor[tgt.target[1]] + 1e-12:
+        if stats is not None: stats["floor"] = stats.get("floor",0) + 1
         return False
-    # Sの下限
+    # Sの下限（代替案スコア）
     if tgt.kind == 'S' and att.sign == -1:
         a, c = tgt.target
         if S[a, c] <= tau[a, c] + 1e-12:
+            if stats is not None: stats["tau"] = stats.get("tau",0) + 1
             return False
-    # 価値依存：攻撃側の価値優先度が >= 被攻撃側
+    # 価値依存
     return conflicts(att, tgt) and (w[att.crit] + 1e-12 >= w[tgt.crit])
 
 def grounded_vaf_personal(args: List[Arg], w: np.ndarray,
                           veto_crit: set, w_floor: np.ndarray,
-                          S: np.ndarray, tau: np.ndarray) -> List[int]:
+                          S: np.ndarray, tau: np.ndarray,
+                          stats: Dict[str,int] = None) -> List[int]:
     n = len(args)
     attackers = [set() for _ in range(n)]
     for i in range(n):
         for j in range(n):
             if i == j: continue
-            if effective_attack_personal(args[i], args[j], w, veto_crit, w_floor, S, tau):
+            if effective_attack_personal(args[i], args[j], w, veto_crit, w_floor, S, tau, stats=stats):
                 attackers[j].add(i)
 
     undec = set(range(n)); acc, rej = set(), set()
@@ -172,6 +228,7 @@ def grounded_vaf_personal(args: List[Arg], w: np.ndarray,
         if newly_rej:
             rej |= newly_rej; undec -= newly_rej; changed = True
     return sorted(list(acc))
+
 
 # ============== Node (Agent) state =================
 
@@ -193,20 +250,28 @@ class NodeState:
 def init_states(N: int, A: int, C: int) -> Dict[int, NodeState]:
     st = {}
     for i in range(N):
-        # criteria pairwise
+        # criteria pairwise → w
         Pcrit = random_pairwise(C, intensity=0.6)
         w_i, ci_i, _ = ahp_eigvec_ci(Pcrit)
 
-        # per-criterion alternative pairwise
+        # 下限（先に用意）
+        w_floor = np.full(C, 0.05, dtype=np.float64)    # 5% floor（従来通り）
+        tau = np.full((A, C), 0.05, dtype=np.float64)   # tauは0.05に固定（平均・更新での再適用で担保）
+
+        # w に floor を適用して正規化（下限付き射影）
+        w_i = project_simplex_with_floor(w_i, w_floor)
+
+        # per-criterion alternative pairwise → S
         Palt = [random_pairwise(A, intensity=0.6) for _ in range(C)]
         S = np.zeros((A, C), dtype=np.float64)
         for c in range(C):
             s_c, _, _ = ahp_eigvec_ci(Palt[c])
-            S[:, c] = s_c  # 比率スケール、正規化済み
+            S[:, c] = s_c
 
-        veto = set([int(rng.integers(0, C))])   # 仮に1本、後で自由に
-        w_floor = np.full(C, 0.05, dtype=np.float64)  # 5% floor
-        tau = np.full((A, C), 0.05, dtype=np.float64) # Sの下限
+        # S に floor を適用して再正規化
+        S = apply_floor_and_normalize_columns(S, tau)
+
+        veto = set([int(rng.integers(0, C))])
 
         st[i] = NodeState(
             w=w_i.copy(), S=S, Pcrit=Pcrit, Palt=Palt, CIcrit=ci_i,
@@ -214,23 +279,6 @@ def init_states(N: int, A: int, C: int) -> Dict[int, NodeState]:
             w_prior=w_i.copy(), veto_crit=veto, w_floor=w_floor, tau=tau
         )
     return st
-
-# ============== Lightweight State Assertions (Preflight) ==============
-
-def assert_state(node_id: int, st: NodeState):
-    # weights
-    assert np.isfinite(st.w).all(), f"w nan/inf at node {node_id}"
-    assert abs(st.w.sum() - 1.0) < 1e-6, f"w not simplex at node {node_id}"
-    assert np.all(st.w >= st.w_floor - 1e-12), f"w below floor at node {node_id}"
-    # S columns
-    A, C = st.S.shape
-    for c in range(C):
-        col = st.S[:, c]
-        assert np.isfinite(col).all(), f"S nan/inf at node {node_id}, c={c}"
-        assert abs(col.sum() - 1.0) < 1e-6, f"S col not simplex at node {node_id}, c={c}"
-        assert np.all(col >= st.tau[:, c] - 1e-12), f"S below tau at node {node_id}, c={c}"
-    # CI
-    assert np.isfinite(st.CIcrit), f"CI not finite at node {node_id}"
 
 # ============== Gossip & Utilities =================
 
@@ -276,12 +324,11 @@ def agau_update_w_safe(w: np.ndarray, args: List[Arg], accepted: List[int], eta:
     w1 = normalize_simplex(w * np.exp(eta * s))
     # 事前に引き戻し（非拘束・慎重さ）
     w2 = normalize_simplex((1 - lam_prior) * w1 + lam_prior * w_prior)
-    # フロア
-    w3 = np.maximum(w2, w_floor)
-    return normalize_simplex(w3)
+    # フロア付き射影で下限と合計=1を同時に満たす
+    return project_simplex_with_floor(w2, w_floor)
 
 def agau_update_S_via_Palt(S: np.ndarray, Palt: List[np.ndarray], args: List[Arg], accepted: List[int],
-                           eta: float, s_min: float = 1e-3, s_max: float = 1e3) -> Tuple[np.ndarray, List[np.ndarray]]:
+                           eta: float, tau: np.ndarray, s_min: float = 1e-3, s_max: float = 1e3) -> Tuple[np.ndarray, List[np.ndarray]]:
     """受理S論証を Palt に反映→固有ベクトルで S[:,c] を再計算。"""
     for k in accepted:
         a = args[k]
@@ -294,7 +341,11 @@ def agau_update_S_via_Palt(S: np.ndarray, Palt: List[np.ndarray], args: List[Arg
     for c in range(C):
         s_c, _, _ = ahp_eigvec_ci(Palt[c])
         S[:, c] = s_c
-    return np.clip(S, s_min, s_max), Palt
+    # tauフロア適用 → 列ごと再正規化 → クリップ（主に上限保護）
+    S = apply_floor_and_normalize_columns(S, tau)
+    # 上限保護のみ（下限は tau に任せる）
+    S = np.minimum(S, s_max)
+    return S, Palt
 
 # ============== Action space =================
 
@@ -393,6 +444,10 @@ def step_env(actions_idx: Dict[int,int], action_space: List[ActionSpec],
              lam_prior: float = 0.05,
              lam_incons_w: float = 0.10) -> Dict[str, Any]:
     """全ノード同時に行動→VAF受理→AGAU（w/SとPcrit/Palt）→gossip→報酬+ログ"""
+    # Preflight invariant checks (optional)
+    if getattr(step_env, "check_invariants", False):
+        for _i in G.nodes:
+            assert_state(_i, states[_i])
     # 1) materialize arguments, broadcast to neighbors+self
     outbox: Dict[int, List[Arg]] = defaultdict(list)
     own_arg_per_node: Dict[int, Arg] = {}
@@ -413,41 +468,39 @@ def step_env(actions_idx: Dict[int,int], action_space: List[ActionSpec],
     # 2) deliver
     for i in G.nodes:
         states[i].inbox.extend(outbox[i])
-
     # 3) VAF受理→AGAU更新（個人ごと）
     accept_map: Dict[int,List[int]] = {}
-    veto_blocks_count = 0
+    safety_stats_all: Dict[int, Dict[str,int]] = {}  # <= NEW
     for i in G.nodes:
         st = states[i]; args = st.inbox
         if args:
-            acc = grounded_vaf_personal(args, st.w, st.veto_crit, st.w_floor, st.S, st.tau)
+            local_stats = {"veto":0,"floor":0,"tau":0}  # <= NEW
+            acc = grounded_vaf_personal(args, st.w, st.veto_crit, st.w_floor, st.S, st.tau, stats=local_stats)  # <= MOD
+            safety_stats_all[i] = local_stats  # <= NEW
             accept_map[i] = acc
-            # veto diagnostics: count own and received decreases on veto criteria that did not get accepted
-            for k, a in enumerate(args):
-                if a.kind == 'w' and a.sign == -1 and (a.crit in st.veto_crit):
-                    if k not in acc:
-                        veto_blocks_count += 1
             # CI/エントロピーに応じてeta調整
             eta_eff = adjust_eta_by_ci_entropy(st.w, st.CIcrit, eta, H_min=0.85, CI_hi=0.15)
             # w更新
             st.w = agau_update_w_safe(st.w, args, acc, eta_eff, st.w_floor, st.w_prior, lam_prior)
-            # Pcrit を w に合わせてブレンド（整合方向）
+            # Pcrit を w に合わせてブレンド
             st.Pcrit = blend_pairwise_to_w(st.Pcrit, st.w, lam=lam_incons_w)
-            # Pcrit からCI再計算（参考）
             _, st.CIcrit, _ = ahp_eigvec_ci(st.Pcrit)
-            # S更新（Paltに反映→再固有ベクトル）
-            st.S, st.Palt = agau_update_S_via_Palt(st.S, st.Palt, args, acc, eta_eff)
+            # S更新（tauフロア適用を内包）
+            st.S, st.Palt = agau_update_S_via_Palt(st.S, st.Palt, args, acc, eta_eff, st.tau)
+            # 念のため、ここでも列ごとに tau フロアと正規化を強制
+            st.S = apply_floor_and_normalize_columns(st.S, st.tau)
         else:
             accept_map[i] = []
+            safety_stats_all[i] = {"veto":0,"floor":0,"tau":0}  # <= NEW
+
 
     # 4) Gossip（wのみ）。その後、Pcritをwに微ブレンドして整合を保つ。
     w_all = {i: states[i].w for i in G.nodes}
     for i in G.nodes:
         states[i].w = gossip_step_w(i, w_all, G)
+        states[i].w = project_simplex_with_floor(states[i].w, states[i].w_floor)
         states[i].Pcrit = blend_pairwise_to_w(states[i].Pcrit, states[i].w, lam=0.05)
         _, states[i].CIcrit, _ = ahp_eigvec_ci(states[i].Pcrit)
-        # assert after gossip
-        assert_state(i, states[i])
 
     # 5) 報酬（ΔSI + Δ合意度 + 自論受理）
     util_g = group_utility(states)
@@ -481,6 +534,10 @@ def step_env(actions_idx: Dict[int,int], action_space: List[ActionSpec],
 
         st.last_si = si_now; st.last_cons = cons_now
         st.inbox = st.inbox[-80:]  # keep bounded
+    safety_totals = {"veto":0,"floor":0,"tau":0}
+    for i in safety_stats_all:
+        for k in safety_totals:
+            safety_totals[k] += safety_stats_all[i][k]
 
     return {
         "rewards": rewards,
@@ -489,20 +546,48 @@ def step_env(actions_idx: Dict[int,int], action_space: List[ActionSpec],
         "d_si": d_si_map,
         "d_cons": d_cons_map,
         "div_vec": div_vec,
-        "veto_blocks": veto_blocks_count
+        "safety_events": safety_totals  # <= NEW
     }
 
 # ============== Training (PPO) =================
 
 def train_ppo(
-    N=12, A=5, C=5, steps_per_update=64, updates=60,
+    N=4, A=3, C=3, steps_per_update=64, updates=60,
     eta=0.06, gamma=0.95, gae_lam=0.95, clip_eps=0.2,
     pi_lr=3e-4, vf_lr=5e-4, pi_epochs=4, minibatch_frac=0.5, seed=123,
-    eval_every: int = 10, eval_episodes: int = 5,
-    early_stop_window: int = 30, early_stop_eps: float = 0.002,
-    domain_rand: bool = False,
-    export_templates: bool = False
+    eval_every=10, val_steps=64, save_dir="artifacts", check_invariants=CHECK_INVARIANTS_DEFAULT,
+    export_templates=False
 ):
+    os.makedirs(save_dir, exist_ok=True)
+    # enable invariant checks inside step_env
+    step_env.check_invariants = bool(check_invariants)
+
+    def compute_D_from_W(Wsnap: np.ndarray) -> float:
+        wbar = Wsnap.mean(axis=0)
+        return float(np.max(wbar))
+
+    def eval_once(val_steps=64):
+        # 学習OFFで policy を用い、短いロールアウトを回す
+        G_eval = nx.watts_strogatz_graph(N, k=4, p=0.2, seed=seed+999)
+        states_eval = init_states(N, A, C)
+        dsi_list, dcons_list, ownacc_list = [], [], []
+        Wsnaps = []
+        for _ in range(val_steps):
+            obs_all = [build_observation(i, states_eval, G_eval) for i in G_eval.nodes]
+            obs_np = np.stack(obs_all, axis=0)
+            with torch.no_grad():
+                logits = policy(torch.as_tensor(obs_np, dtype=torch.float32))
+                probs = torch.distributions.Categorical(logits=torch.nan_to_num(logits))
+                acts = probs.sample().cpu().numpy()
+            actions_idx = {i: int(a) for i, a in zip(G_eval.nodes, acts)}
+            out = step_env(actions_idx, action_space, states_eval, G_eval, A, C, eta=eta)
+            dsi_list.append(np.mean([out["d_si"][i] for i in G_eval.nodes]))
+            dcons_list.append(np.mean([out["d_cons"][i] for i in G_eval.nodes]))
+            ownacc_list.append(np.mean([out["own_accepted_exact"][i] for i in G_eval.nodes]))
+            Wsnaps.append(np.stack([states_eval[i].w for i in G_eval.nodes], axis=0))
+        D_final = compute_D_from_W(Wsnaps[-1])
+        J = float(np.mean(dsi_list) + 0.3*np.mean(dcons_list) + 0.2*np.mean(ownacc_list) - 0.5*D_final)
+        return J, D_final
     random.seed(seed); np.random.seed(seed); torch.manual_seed(seed)
     os.makedirs("logs", exist_ok=True)
 
@@ -528,65 +613,10 @@ def train_ppo(
     accept_stats: Dict[Tuple[str,int,int], List[int]] = defaultdict(lambda: [0,0])
     traj_dsi, traj_dcons, traj_hit = [], [], []
     weight_div_series: List[np.ndarray] = []
-    veto_blocks_total = 0
 
-    # best checkpointing
-    os.makedirs("artifacts", exist_ok=True)
+    # best model tracking
     best_J = -1e9
-    best_state_dict: Dict[str, Any] = {}
-    best_meta: Dict[str, Any] = {}
-
-    def compute_D_final(states: Dict[int, NodeState]) -> float:
-        W = np.stack([states[i].w for i in G.nodes], axis=0)
-        return float(W.mean(axis=0).max())
-
-    def eval_policy(policy: nn.Module, episodes: int = 5) -> List[Dict[str, Any]]:
-        eval_logs: List[Dict[str, Any]] = []
-        for ep in range(episodes):
-            # fixed standard setting for eval
-            G_eval = nx.watts_strogatz_graph(N, k=4, p=0.2, seed=seed + 1000 + ep)
-            states_eval = init_states(N, A, C)
-            # rollout short episode equal to steps_per_update
-            for t in range(steps_per_update):
-                obs_all = []
-                node_index = []
-                for i in G_eval.nodes:
-                    obs_all.append(build_observation(i, states_eval, G_eval))
-                    node_index.append(i)
-                obs_np = np.stack(obs_all, axis=0)
-                with torch.no_grad():
-                    obs_t = torch.as_tensor(obs_np, dtype=torch.float32)
-                    logits = policy(obs_t)
-                    logits = torch.nan_to_num(logits, nan=0.0, posinf=1e6, neginf=-1e6)
-                    a = torch.distributions.Categorical(logits=logits).sample().cpu().numpy()
-                actions_idx = {node_index[k]: int(a[k]) for k in range(N)}
-                out = step_env(actions_idx, action_space, states_eval, G_eval, A, C, eta=eta)
-            # compute metrics at end of episode
-            util_g = group_utility(states_eval)
-            si_vals = [pearson_scaled(states_eval[i].S @ states_eval[i].w, util_g) for i in G_eval.nodes]
-            dsi = float(np.mean(si_vals))
-            # local consensus: lower is better; we approximate delta consensus positively if decreased
-            cons_vals = [local_consensus(i, states_eval, G_eval) for i in G_eval.nodes]
-            dcons = float(np.mean(cons_vals))
-            own_accept = 0.0  # not tracked offline; use 0 mean placeholder
-            W = np.stack([states_eval[i].w for i in G_eval.nodes], axis=0)
-            eval_logs.append({
-                'dsi': dsi,
-                'dcons': dcons,
-                'own_accept': own_accept,
-                'W_snapshots': W
-            })
-        return eval_logs
-
-    def compute_J(eval_logs: List[Dict[str, Any]]) -> float:
-        if len(eval_logs) == 0:
-            return -1e9
-        dsi = float(np.mean([x['dsi'] for x in eval_logs]))
-        dcons = float(np.mean([x['dcons'] for x in eval_logs]))
-        oacc = float(np.mean([x['own_accept'] for x in eval_logs]))
-        wbar = np.mean(eval_logs[-1]['W_snapshots'], axis=0)
-        D = float(np.max(wbar))
-        return dsi + 0.3 * dcons + 0.2 * oacc - 0.5 * D
+    best_paths: Dict[str, str] = {}
 
     def policy_step(obs_batch: np.ndarray):
         with torch.no_grad():
@@ -601,22 +631,6 @@ def train_ppo(
 
     for upd in range(1, updates+1):
         buf.reset()
-        # optional domain randomization per update (treat each update as an episode)
-        if domain_rand:
-            # Stage sampling (A/B/C)
-            stage = rng.choice(['A', 'B', 'C'], p=[0.3, 0.5, 0.2])
-            if stage == 'A':
-                N = int(rng.choice([6, 8])); A = 4; C = 4; p = 0.1
-            elif stage == 'B':
-                N = 12; A = 5; C = 5; p = 0.2
-            else:
-                N = int(rng.choice([10, 14, 16])); A = int(rng.choice([4, 6])); C = int(rng.choice([4, 6])); p = float(rng.uniform(0.1, 0.3))
-            G = nx.watts_strogatz_graph(N, k=min(4, max(2, N//3)), p=p, seed=seed + upd)
-            states = init_states(N, A, C)
-            action_space = build_action_space(C, A)
-            act_dim = len(action_space)
-            # adjust nets if act_dim changed is out of scope; assume fixed C,A for policy_v1
-
         # rollout
         for t in range(steps_per_update):
             obs_all = []; node_index = []
@@ -644,7 +658,6 @@ def train_ppo(
             traj_dcons.append(float(np.mean([out["d_cons"][i] for i in node_index])))
             traj_hit.append(float(np.mean([out["own_accepted_exact"][i] for i in node_index])))
             weight_div_series.append(out["div_vec"])
-            veto_blocks_total += int(out.get("veto_blocks", 0))
 
             for k in range(N):
                 buf.add(obs_np[k], acts[k], logps[k], rews[k], vals[k], done_flags[k])
@@ -687,42 +700,25 @@ def train_ppo(
         si_mean = np.mean([pearson_scaled(states[i].S @ states[i].w, util_g) for i in G.nodes])
 
         print(f"[upd {upd:03d}] entropy={ent:.2f} vf_loss={loss_v_eval:.3f} "
-              f"cons(max L1 nbr)={cons_global:.3f} SI~{si_mean:.3f} veto_blocks={veto_blocks_total}")
+              f"cons(max L1 nbr)={cons_global:.3f} SI~{si_mean:.3f}")
 
-        # periodic evaluation and early stopping
-        if upd % eval_every == 0:
-            eval_logs = eval_policy(policy, episodes=eval_episodes)
-            J = compute_J(eval_logs)
-            # checkpoint best
+        # === eval & save best ===
+        if (upd % eval_every) == 0:
+            J, Dfin = eval_once(val_steps=val_steps)
+            print(f"[eval @upd {upd}] J={J:.4f}  D_final={Dfin:.3f}")
             if J > best_J:
                 best_J = J
-                best_state_dict = {k: v.cpu() for k, v in policy.state_dict().items()}
-                best_meta = {
-                    'obs_dim': obs_dim,
-                    'act_dim': act_dim,
-                    'updates': updates,
-                    'steps_per_update': steps_per_update,
-                    'pi_epochs': pi_epochs,
-                    'minibatch_frac': minibatch_frac,
-                    'seed': seed,
-                }
-                # export TorchScript
-                example = torch.randn(1, obs_dim)
-                scripted = torch.jit.trace(policy.cpu(), example)
-                torch.jit.save(scripted, f"artifacts/policy_v1_seed{seed}_best.ts")
-                torch.save(best_state_dict, f"artifacts/policy_v1_seed{seed}.pt")
-                with open("artifacts/meta_v1.json", "w") as f:
-                    import json
-                    json.dump(best_meta, f, indent=2)
-            # rudimentary early stop based on trailing improvements (store last Js)
-            if not hasattr(train_ppo, "_J_hist"):
-                train_ppo._J_hist = []  # type: ignore[attr-defined]
-            train_ppo._J_hist.append(J)  # type: ignore[attr-defined]
-            if len(train_ppo._J_hist) > early_stop_window:  # type: ignore[attr-defined]
-                recent = train_ppo._J_hist[-early_stop_window:]  # type: ignore[attr-defined]
-                if max(recent) - min(recent) < early_stop_eps:
-                    print(f"Early stopping at update {upd} due to small J improvement < {early_stop_eps}")
-                    break
+                pt_path = os.path.join(save_dir, f"policy_v1_seed{seed}_best.pt")
+                ts_path = os.path.join(save_dir, f"policy_v1_seed{seed}_best.ts")
+                scripted = torch.jit.script(policy)
+                torch.save(policy.state_dict(), pt_path)
+                torch.jit.save(scripted, ts_path)
+                best_paths = {"pt": pt_path, "ts": ts_path}
+                if export_templates:
+                    export_action_templates(action_space,
+                                            os.path.join(save_dir, "action_space.json"),
+                                            os.path.join(save_dir, "templates.json"))
+                print(f"  >> saved BEST: J={best_J:.4f} to {best_paths}")
 
     # dump logs
     import csv
@@ -757,44 +753,24 @@ def train_ppo(
     print("Ranking (best->worst):", ranking)
     print("Saved logs in ./logs (compatible with viz_logs.py)")
 
-if __name__ == "__main__":
-    import argparse, json, subprocess
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--N', type=int, default=12)
-    parser.add_argument('--A', type=int, default=5)
-    parser.add_argument('--C', type=int, default=5)
-    parser.add_argument('--steps_per_update', type=int, default=64)
-    parser.add_argument('--updates', type=int, default=60)
-    parser.add_argument('--eta', type=float, default=0.06)
-    parser.add_argument('--gamma', type=float, default=0.95)
-    parser.add_argument('--gae_lam', type=float, default=0.95)
-    parser.add_argument('--clip_eps', type=float, default=0.2)
-    parser.add_argument('--pi_lr', type=float, default=3e-4)
-    parser.add_argument('--vf_lr', type=float, default=5e-4)
-    parser.add_argument('--pi_epochs', type=int, default=4)
-    parser.add_argument('--minibatch_frac', type=float, default=0.5)
-    parser.add_argument('--seed', type=int, default=123)
-    parser.add_argument('--eval_every', type=int, default=10)
-    parser.add_argument('--eval_episodes', type=int, default=5)
-    parser.add_argument('--early_stop_window', type=int, default=30)
-    parser.add_argument('--early_stop_eps', type=float, default=0.002)
-    parser.add_argument('--domain_rand', type=int, default=0)
-    parser.add_argument('--export_templates', type=int, default=1)
-    parser.add_argument('--preflight', type=int, default=0)
-    args = parser.parse_args()
+# ============== Export helpers (action space & NL templates) ==============
 
-    # optional export of action space and templates
-    os.makedirs('artifacts', exist_ok=True)
-    # action space mapping (index -> spec)
-    action_space = build_action_space(args.C, args.A)
-    action_map = [
-        {"kind": s.kind, "crit": s.crit, "sign": s.sign, "mag": s.mag, "alt": s.alt}
-        for s in action_space
-    ]
-    with open('artifacts/action_space.json', 'w') as f:
-        json.dump(action_map, f, ensure_ascii=False, indent=2)
+def export_action_templates(action_space: List["ActionSpec"], path_space: str, path_templates: str):
+    # action_space.json
+    items = []
+    for idx, spec in enumerate(action_space):
+        items.append({
+            "index": idx,
+            "kind": spec.kind,
+            "crit": spec.crit,
+            "sign": spec.sign,
+            "mag": spec.mag,
+            "alt": spec.alt
+        })
+    with open(path_space, "w") as f:
+        json.dump(items, f, ensure_ascii=False, indent=2)
 
-    # templates example
+    # templates.json（固定テンプレ：後でUI側で細かく調整可）
     templates = {
         "w": {
             "+1": {
@@ -804,55 +780,48 @@ if __name__ == "__main__":
             },
             "-1": {
                 "1.0": "基準{c}の重みを少し下げる（Veto/フロアに注意）",
+                "2.0": "基準{c}の重みを下げる（Veto/フロアに注意）",
                 "3.0": "基準{c}の重みを強く下げる（Veto/フロアに注意）"
             }
         },
         "S": {
             "+1": "代替案{a}×基準{c}の評価を上げる（強度{mag}）",
-            "-1": "代替案{a}×基準{c}の評価を下げる（強度{mag}})"
+            "-1": "代替案{a}×基準{c}の評価を下げる（強度{mag}）"
         }
     }
-    with open('artifacts/templates.json', 'w') as f:
+    with open(path_templates, "w") as f:
         json.dump(templates, f, ensure_ascii=False, indent=2)
 
-    # record commit hash if available
-    commit_hash = None
-    try:
-        commit_hash = subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode().strip()
-    except Exception:
-        commit_hash = None
-    meta = {
-        'obs_dim': 4 * args.C + 4,
-        'A': args.A, 'C': args.C,
-        'commit': commit_hash
-    }
-    with open('artifacts/meta_v1.json', 'w') as f:
-        json.dump(meta, f, ensure_ascii=False, indent=2)
+if __name__ == "__main__":
+    p = argparse.ArgumentParser()
+    p.add_argument("--N", type=int, default=4)
+    p.add_argument("--A", type=int, default=3)
+    p.add_argument("--C", type=int, default=4)
+    p.add_argument("--steps_per_update", type=int, default=64)
+    p.add_argument("--updates", type=int, default=60)
+    p.add_argument("--eta", type=float, default=0.06)
+    p.add_argument("--gamma", type=float, default=0.95)
+    p.add_argument("--gae_lam", type=float, default=0.95)
+    p.add_argument("--clip_eps", type=float, default=0.2)
+    p.add_argument("--pi_lr", type=float, default=3e-4)
+    p.add_argument("--vf_lr", type=float, default=5e-4)
+    p.add_argument("--pi_epochs", type=int, default=4)
+    p.add_argument("--minibatch_frac", type=float, default=0.5)
+    p.add_argument("--seed", type=int, default=123)
+    p.add_argument("--eval_every", type=int, default=10)
+    p.add_argument("--val_steps", type=int, default=64)
+    p.add_argument("--save_dir", type=str, default="artifacts")
+    p.add_argument("--check_invariants", type=int, default=int(CHECK_INVARIANTS_DEFAULT))
+    p.add_argument("--export_templates", action="store_true")
+    args = p.parse_args()
 
-    # preflight can simply run with tiny updates
-    if args.preflight:
-        train_ppo(
-            N=args.N, A=args.A, C=args.C,
-            steps_per_update=args.steps_per_update,
-            updates=args.updates,
-            eta=args.eta, gamma=args.gamma, gae_lam=args.gae_lam,
-            clip_eps=args.clip_eps, pi_lr=args.pi_lr, vf_lr=args.vf_lr,
-            pi_epochs=args.pi_epochs, minibatch_frac=args.minibatch_frac,
-            seed=args.seed,
-            eval_every=10**9, eval_episodes=args.eval_episodes,
-            early_stop_window=args.early_stop_window, early_stop_eps=args.early_stop_eps,
-            domain_rand=bool(args.domain_rand), export_templates=bool(args.export_templates)
-        )
-    else:
-        train_ppo(
-            N=args.N, A=args.A, C=args.C,
-            steps_per_update=args.steps_per_update,
-            updates=args.updates,
-            eta=args.eta, gamma=args.gamma, gae_lam=args.gae_lam,
-            clip_eps=args.clip_eps, pi_lr=args.pi_lr, vf_lr=args.vf_lr,
-            pi_epochs=args.pi_epochs, minibatch_frac=args.minibatch_frac,
-            seed=args.seed,
-            eval_every=args.eval_every, eval_episodes=args.eval_episodes,
-            early_stop_window=args.early_stop_window, early_stop_eps=args.early_stop_eps,
-            domain_rand=bool(args.domain_rand), export_templates=bool(args.export_templates)
-        )
+    train_ppo(
+        N=args.N, A=args.A, C=args.C,
+        steps_per_update=args.steps_per_update, updates=args.updates,
+        eta=args.eta, gamma=args.gamma, gae_lam=args.gae_lam,
+        clip_eps=args.clip_eps, pi_lr=args.pi_lr, vf_lr=args.vf_lr,
+        pi_epochs=args.pi_epochs, minibatch_frac=args.minibatch_frac, seed=args.seed,
+        eval_every=args.eval_every, val_steps=args.val_steps, save_dir=args.save_dir,
+        check_invariants=bool(args.check_invariants),
+        export_templates=args.export_templates
+    )
