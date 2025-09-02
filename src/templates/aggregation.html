@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block title %}集約フェーズ - 意思決定実験システム{% endblock %}
+
+{% block content %}
+<div class="aggregation-section">
+    <h2>集約フェーズ (トライアル {{ trial }})</h2>
+    <p>他の参加者の意見をご確認ください。</p>
+    
+    <div class="bot-opinions">
+        {% for opinion in bot_opinions %}
+        <div class="bot-opinion-card">
+            <h4>参加者 {{ opinion.bot_id + 1 }}の意見</h4>
+            
+            <div class="bot-decision">
+                <strong>判断:</strong> 
+                <span class="decision-badge {{ 'agree' if opinion.decision == '賛成' else 'disagree' }}">
+                    {{ opinion.decision }}
+                </span>
+            </div>
+
+            {% if condition != 'human-alone' %}
+            <div class="bot-weights">
+                <h5>重要度設定:</h5>
+                <div class="weight-visualization">
+                    {% for criterion, weight in opinion.weights.items() %}
+                    <div class="weight-bar-container">
+                        <div class="weight-label">{{ criterion }}</div>
+                        <div class="weight-bar">
+                            <div class="weight-fill" style="width: {{ weight }}%"></div>
+                            <span class="weight-text">{{ weight }}%</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="bot-reasoning">
+                <strong>理由:</strong> {{ opinion.reasoning }}
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if condition == 'visualization' %}
+    <div class="comparison-chart">
+        <h4>重要度比較チャート</h4>
+        <div class="chart-container">
+            <canvas id="comparisonChart"></canvas>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="next-action">
+        <a href="/intervention" class="btn btn-primary">次のフェーズへ</a>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if condition == 'visualization' %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('comparisonChart').getContext('2d');
+    
+    const botData = [
+        {% for opinion in bot_opinions %}
+        {
+            label: '参加者{{ opinion.bot_id + 1 }}',
+            data: [
+                {% for criterion, weight in opinion.weights.items() %}
+                {{ weight }}{{ ',' if not loop.last }}
+                {% endfor %}
+            ],
+            backgroundColor: '{{ "rgba(54, 162, 235, 0.5)" if opinion.bot_id == 1 else "rgba(255, 99, 132, 0.5)" }}',
+            borderColor: '{{ "rgba(54, 162, 235, 1)" if opinion.bot_id == 1 else "rgba(255, 99, 132, 1)" }}',
+            borderWidth: 1
+        }{{ ',' if not loop.last }}
+        {% endfor %}
+    ];
+
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: [
+                {% for criterion in bot_opinions[0].weights.keys() %}
+                '{{ criterion }}'{{ ',' if not loop.last }}
+                {% endfor %}
+            ],
+            datasets: botData
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    title: {
+                        display: true,
+                        text: '重要度 (%)'
+                    }
+                }
+            },
+            plugins: {
+                title: {
+                    display: true,
+                    text: '各参加者の重要度設定比較'
+                }
+            }
+        }
+    });
+});
+</script>
+{% endif %}
+{% endblock %}

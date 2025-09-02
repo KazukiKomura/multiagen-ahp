@@ -1,0 +1,727 @@
+{% extends "base.html" %}
+
+{% block title %}体験フェーズ - 意思決定実験システム{% endblock %}
+
+{% block content %}
+<div class="experience-section">
+    <!-- 上半分：常時表示される意思決定情報 -->
+    <div class="decision-info-panel">
+        <div class="info-header">
+            <h2>{{ info.title }} (トライアル {{ trial }})</h2>
+            <p>{{ info.description }}</p>
+        </div>
+        
+        <div class="candidate-profile">
+            <div class="profile-header">
+                <h3>応募者 {{ info.student.id }} のプロフィール</h3>
+                <div class="basic-info">
+                    <span class="info-tag">{{ info.student.major }}</span>
+                    <span class="info-tag">{{ info.student.region }}</span>
+                    <span class="info-tag">{{ info.student.institution_rank }}機関</span>
+                </div>
+            </div>
+
+            <!-- 5つの評価項目を明確に表示 -->
+            <div class="evaluation-categories">
+                <!-- 1. 学業成績 -->
+                <div class="category-card">
+                    <div class="category-header">
+                        <h4>📚 学業成績</h4>
+                    </div>
+                    <div class="category-details">
+                        <div class="score-large">GPA {{ info.student.gpa }}/4.0</div>
+                        <div class="score-bar">
+                            <div class="score-fill" style="width: {{ (info.student.gpa / 4.0 * 100) | round | int }}%"></div>
+                        </div>
+                        <div class="category-description">直近の学位での成績平均</div>
+                    </div>
+                </div>
+
+                <!-- 2. 試験スコア -->
+                <div class="category-card">
+                    <div class="category-header">
+                        <h4>📝 試験スコア</h4>
+                    </div>
+                    <div class="category-details">
+                        <div class="score-breakdown">
+                            <div class="subscore">定量: <strong>{{ info.student.gre_quant }}</strong>/170</div>
+                            <div class="subscore">言語: <strong>{{ info.student.gre_verbal }}</strong>/170</div>
+                            <div class="subscore">作文: <strong>{{ info.student.gre_writing }}</strong>/6.0</div>
+                        </div>
+                        <div class="category-description">GRE総合スコア: {{ info.student.gre_quant + info.student.gre_verbal }}/340</div>
+                    </div>
+                </div>
+
+                <!-- 3. 研究能力 -->
+                <div class="category-card">
+                    <div class="category-header">
+                        <h4>🔬 研究能力</h4>
+                    </div>
+                    <div class="category-details">
+                        <div class="score-breakdown">
+                            <div class="subscore">志望動機書: <strong>{{ info.student.sop_score }}</strong>/5.0</div>
+                            <div class="subscore">多様性声明: <strong>{{ info.student.diversity_score }}</strong>/5.0</div>
+                        </div>
+                        <div class="score-bar">
+                            <div class="score-fill" style="width: {{ (info.student.sop_score / 5 * 100) | round | int }}%"></div>
+                        </div>
+                        <div class="category-description">研究への意欲・能力評価</div>
+                    </div>
+                </div>
+
+                <!-- 4. 推薦状 -->
+                <div class="category-card">
+                    <div class="category-header">
+                        <h4>📄 推薦状</h4>
+                    </div>
+                    <div class="category-details">
+                        <div class="rec-letters-display">
+                            {% for letter in info.student.rec_letters %}
+                            <div class="letter-item {{ 'excellent' if '優秀' in letter else ('average' if '普通' in letter else 'weak') }}">
+                                {{ letter }}
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <div class="category-description">3通の推薦状評価</div>
+                    </div>
+                </div>
+
+                <!-- 5. 多様性 -->
+                <div class="category-card">
+                    <div class="category-header">
+                        <h4>🌍 多様性</h4>
+                    </div>
+                    <div class="category-details">
+                        <div class="score-large">{{ info.student.diversity_score }}/5.0</div>
+                        <div class="diversity-info">
+                            <div class="diversity-item">専攻: <strong>{{ info.student.major }}</strong></div>
+                            <div class="diversity-item">出身: <strong>{{ info.student.region }}</strong></div>
+                            <div class="diversity-item">機関: <strong>{{ info.student.institution_rank }}ランク</strong></div>
+                        </div>
+                        <div class="category-description">背景・経験の多様性評価</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 下半分：操作フェーズ切り替えエリア -->
+    <div class="operation-panel">
+        <!-- プログレス表示 -->
+        <div class="progress-bar">
+            <div class="step active" data-step="0">
+                <span class="step-number">1</span>
+                <span class="step-label">あなたの意見</span>
+            </div>
+            <div class="step" data-step="1">
+                <span class="step-number">2</span>
+                <span class="step-label">他の意見確認</span>
+            </div>
+            <div class="step" data-step="2">
+                <span class="step-number">3</span>
+                <span class="step-label">AIチャット</span>
+            </div>
+            <div class="step" data-step="3">
+                <span class="step-number">4</span>
+                <span class="step-label">最終決定</span>
+            </div>
+        </div>
+
+        <!-- フェーズ1: 自分の意見表明 -->
+        <div class="phase-content active" data-phase="0">
+            <h3>あなたの意見をお聞かせください</h3>
+            <form id="initialDecisionForm" method="post" action="javascript:void(0);">
+                <div class="decision-choice">
+                    <h4>入学判定をお選びください</h4>
+                    <div class="radio-group simple-options">
+                        <label>
+                            <input type="radio" name="decision" value="合格" required>
+                            <span class="radio-custom"></span>
+                            合格
+                        </label>
+                        <label>
+                            <input type="radio" name="decision" value="不合格" required>
+                            <span class="radio-custom"></span>
+                            不合格
+                        </label>
+                    </div>
+                </div>
+
+                <div class="weights-section">
+                    <h4>各基準の重要度を設定してください（合計100%）</h4>
+                    <div class="weights-container">
+                        {% for criterion in info.criteria %}
+                        <div class="weight-item">
+                            <label for="{{ criterion }}">{{ criterion }}</label>
+                            <div class="weight-controls">
+                                <input type="range" 
+                                       id="{{ criterion }}" 
+                                       name="{{ criterion }}" 
+                                       min="0" 
+                                       max="100" 
+                                       value="20" 
+                                       step="10"
+                                       class="weight-slider">
+                                <span class="weight-value" id="{{ criterion }}-value">20</span>%
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div class="total-weight">
+                        合計: <span id="total-weight">100</span>%
+                    </div>
+                </div>
+
+                <div class="reasoning-section">
+                    <h4>判断理由（任意）</h4>
+                    <textarea name="reasoning" rows="3" placeholder="判断理由をご記入ください"></textarea>
+                </div>
+
+                <button type="button" class="btn btn-primary" id="confirmDecisionBtn">意見を確定して次へ</button>
+            </form>
+        </div>
+
+        <!-- フェーズ2: 他の意見確認 -->
+        <div class="phase-content" data-phase="1">
+            <h3>他の参加者の意見</h3>
+            <div class="opinions-comparison">
+                <div class="my-opinion">
+                    <h4>あなたの意見</h4>
+                    <div class="opinion-summary" id="myOpinionSummary">
+                        <!-- JavaScript で動的に表示 -->
+                    </div>
+                </div>
+                
+                <div class="others-opinions">
+                    <h4>他の参加者の意見</h4>
+                    <div class="opinions-grid" id="othersOpinions">
+                        <!-- JavaScript で動的に表示 -->
+                    </div>
+                </div>
+            </div>
+            <button class="btn btn-primary" onclick="nextPhase()">AIチャットへ進む</button>
+        </div>
+
+        <!-- フェーズ3: AIチャット -->
+        <div class="phase-content" data-phase="2">
+            <h3>AIファシリテーターとの対話</h3>
+            <div class="split-view">
+                <div class="opinions-sidebar">
+                    <h4>意見の比較</h4>
+                    <div id="comparisonView">
+                        <!-- JavaScript で動的に表示 -->
+                    </div>
+                </div>
+                
+                <div class="chat-area">
+                    <div class="chat-messages" id="chatMessages">
+                        <div class="ai-message">
+                            <div class="message-content">
+                                こんにちは！あなたの意思決定について少しお話ししませんか？
+                                まず、先ほどの判断について、どのような点を最も重視されましたか？
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="chat-input-container">
+                        <input type="text" id="chatInput" placeholder="メッセージを入力してください..." maxlength="500">
+                        <button id="sendButton" class="btn btn-primary">送信</button>
+                    </div>
+                    
+                    <div class="chat-info">
+                        <p>会話回数: <span id="messageCount">0</span>/5</p>
+                        <button class="btn btn-secondary" id="finishChat" style="display: none;" onclick="nextPhase()">対話を終了して最終決定へ</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- フェーズ4: 最終決定 -->
+        <div class="phase-content" data-phase="3">
+            <h3>最終決定</h3>
+            <div class="final-decision-area">
+                <div class="decision-comparison">
+                    <div class="initial-decision">
+                        <h4>初回の判断</h4>
+                        <div id="initialDecisionSummary">
+                            <!-- JavaScript で動的に表示 -->
+                        </div>
+                    </div>
+                </div>
+
+                <form id="finalDecisionForm" method="post" action="javascript:void(0);">
+                    <div class="final-choice">
+                        <h4>最終判定</h4>
+                        <div class="radio-group simple-options">
+                            <label>
+                                <input type="radio" name="final_decision" value="合格" required>
+                                <span class="radio-custom"></span>
+                                合格
+                            </label>
+                            <label>
+                                <input type="radio" name="final_decision" value="不合格" required>
+                                <span class="radio-custom"></span>
+                                不合格
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="final-weights">
+                        <h4>最終重要度設定</h4>
+                        <div class="weights-container">
+                            {% for criterion in info.criteria %}
+                            <div class="weight-item">
+                                <label for="final_{{ criterion }}">{{ criterion }}</label>
+                                <div class="weight-controls">
+                                    <input type="range" 
+                                           id="final_{{ criterion }}" 
+                                           name="final_{{ criterion }}" 
+                                           min="0" 
+                                           max="100" 
+                                           value="20" 
+                                           step="10"
+                                           class="weight-slider final-slider">
+                                    <span class="weight-value" id="final_{{ criterion }}-value">20</span>%
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <div class="total-weight">
+                            合計: <span id="final-total-weight">100</span>%
+                        </div>
+                    </div>
+
+                    <div class="change-reasoning">
+                        <h4>変更理由（変更がある場合）</h4>
+                        <textarea name="change_reasoning" rows="3" 
+                                  placeholder="判断や重要度を変更された場合、その理由をお聞かせください"></textarea>
+                    </div>
+
+                    <div class="confidence-rating">
+                        <h4>最終判断への信頼度</h4>
+                        <div class="scale-input">
+                            <input type="range" id="confidence" name="confidence" min="1" max="7" value="4" class="slider">
+                            <div class="scale-labels">
+                                <span>全く信頼していない</span>
+                                <span class="scale-value" id="confidence-value">4</span>
+                                <span>完全に信頼している</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">最終決定を確定する</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('✓ DOMContentLoaded event fired');
+    
+    // デバッグ: 全体的な要素確認
+    const allForms = document.querySelectorAll('form');
+    console.log('✓ ページ内のフォーム数:', allForms.length);
+    
+    const allButtons = document.querySelectorAll('button');
+    console.log('✓ ページ内のボタン数:', allButtons.length);
+    
+    allButtons.forEach((btn, index) => {
+        console.log(`  ボタン${index}: id="${btn.id}", type="${btn.type}", text="${btn.textContent.trim()}"`);
+    });
+    
+    let currentPhase = 0;
+    let initialDecisionData = null;
+    let botOpinions = [];
+    let conversationCount = 0;
+    
+    // 重要度スライダー関数
+    function setupWeightSliders(containerSelector) {
+        const container = document.querySelector(containerSelector);
+        const weightSliders = container.querySelectorAll('.weight-slider');
+        const totalWeightDisplay = container.querySelector('.total-weight span');
+        
+        function updateWeights() {
+            let total = 0;
+            weightSliders.forEach(slider => {
+                const value = parseInt(slider.value);
+                total += value;
+                document.getElementById(slider.id + '-value').textContent = value;
+            });
+            
+            totalWeightDisplay.textContent = total;
+            totalWeightDisplay.className = total === 100 ? 'correct' : 'incorrect';
+        }
+
+        weightSliders.forEach(slider => {
+            slider.addEventListener('input', updateWeights);
+        });
+        
+        updateWeights();
+        return { weightSliders, updateWeights };
+    }
+
+    // 初期重要度スライダー設定
+    const initialWeights = setupWeightSliders('[data-phase="0"]');
+    
+    // フェーズ切り替え
+    function showPhase(phaseIndex) {
+        document.querySelectorAll('.phase-content').forEach(content => {
+            content.classList.remove('active');
+        });
+        document.querySelectorAll('.step').forEach(step => {
+            step.classList.remove('active');
+        });
+        
+        document.querySelector(`[data-phase="${phaseIndex}"]`).classList.add('active');
+        document.querySelector(`[data-step="${phaseIndex}"]`).classList.add('active');
+        
+        currentPhase = phaseIndex;
+        
+        if (phaseIndex === 3) {
+            // 最終決定フェーズの重要度スライダー設定
+            setTimeout(() => {
+                const finalWeights = setupWeightSliders('[data-phase="3"]');
+                // 初期値を設定
+                if (initialDecisionData) {
+                    Object.entries(initialDecisionData.weights).forEach(([criterion, weight]) => {
+                        const slider = document.getElementById(`final_${criterion}`);
+                        if (slider) {
+                            slider.value = weight;
+                        }
+                    });
+                    finalWeights.updateWeights();
+                }
+            }, 100);
+        }
+    }
+
+    window.nextPhase = function() {
+        if (currentPhase < 3) {
+            showPhase(currentPhase + 1);
+        }
+    };
+
+    // フェーズ1: 初期決定ボタン
+    const confirmBtn = document.getElementById('confirmDecisionBtn');
+    const initialForm = document.getElementById('initialDecisionForm');
+    
+    if (!confirmBtn || !initialForm) {
+        console.error('confirmDecisionBtn または initialDecisionForm が見つかりません');
+        return;
+    }
+    console.log('✓ 意見確定ボタンのイベントリスナーを設定');
+    
+    confirmBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('✓ 意見確定ボタンがクリックされました');
+        console.log('  イベント:', e);
+        console.log('  フォーム要素:', initialForm);
+        
+        const total = parseInt(document.getElementById('total-weight').textContent);
+        if (total !== 100) {
+            alert('重要度の合計が100%になるよう調整してください。現在の合計: ' + total + '%');
+            return;
+        }
+        
+        const formData = new FormData(initialForm);
+        
+        console.log('フォームデータ内容確認:');
+        for (let [key, value] of formData.entries()) {
+            console.log('  ' + key + ': ' + value);
+        }
+        
+        const data = {
+            trial: parseInt('{{ trial }}'),
+            decision: formData.get('decision'),
+            weights: {},
+            reasoning: formData.get('reasoning') || '',
+            timestamp: new Date().toISOString()
+        };
+        
+        // 基準の重みを取得
+        const criteria = {{ info.criteria | tojson }};
+        criteria.forEach(criterion => {
+            const criterionValue = parseInt(formData.get(criterion));
+            data.weights[criterion] = isNaN(criterionValue) ? 0 : criterionValue;
+            console.log('重み - ' + criterion + ':', data.weights[criterion]);
+        });
+
+        initialDecisionData = data;
+
+        console.log('意思決定データ送信:', data);
+        
+        fetch('/save_decision', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => {
+            console.log('レスポンスステータス:', response.status);
+            return response.json();
+        })
+        .then(result => {
+            console.log('サーバー応答:', result);
+            if (result.success && result.bot_opinions) {
+                botOpinions = result.bot_opinions;
+                showPhase1Content();
+                nextPhase();
+            } else if (result.error) {
+                alert('エラー: ' + result.error);
+            } else {
+                alert('予期しない応答形式です。');
+                console.error('Unexpected response:', result);
+            }
+        })
+        .catch(error => {
+            console.error('Fetch エラー:', error);
+            alert('ネットワークエラーが発生しました: ' + error.message);
+        });
+    });
+
+    // フェーズ2表示内容更新
+    function showPhase1Content() {
+        // 自分の意見表示
+        const myOpinionSummary = document.getElementById('myOpinionSummary');
+        myOpinionSummary.innerHTML = `
+            <div class="decision-badge ${initialDecisionData.decision === '賛成' ? 'agree' : 'disagree'}">
+                ${initialDecisionData.decision}
+            </div>
+            <div class="weight-bars">
+                ${Object.entries(initialDecisionData.weights).map(([criterion, weight]) => `
+                    <div class="weight-bar-small">
+                        <span class="criterion">${criterion}:</span>
+                        <div class="bar">
+                            <div class="fill" style="width: ${weight}%"></div>
+                        </div>
+                        <span class="value">${weight}%</span>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+
+        // 他の参加者の意見表示
+        const othersOpinions = document.getElementById('othersOpinions');
+        othersOpinions.innerHTML = botOpinions.map(opinion => `
+            <div class="opinion-card">
+                <h5>参加者 ${opinion.bot_id + 1}</h5>
+                <div class="decision-badge ${opinion.decision === '賛成' ? 'agree' : 'disagree'}">
+                    ${opinion.decision}
+                </div>
+                <div class="weight-bars">
+                    ${Object.entries(opinion.weights).map(([criterion, weight]) => `
+                        <div class="weight-bar-small">
+                            <span class="criterion">${criterion}:</span>
+                            <div class="bar">
+                                <div class="fill" style="width: ${weight}%"></div>
+                            </div>
+                            <span class="value">${weight}%</span>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `).join('');
+
+        // フェーズ3の比較表示も更新
+        updateComparisonView();
+    }
+
+    function updateComparisonView() {
+        const comparisonView = document.getElementById('comparisonView');
+        comparisonView.innerHTML = `
+            <div class="comparison-item">
+                <h5>あなたの意見</h5>
+                <div class="decision-badge ${initialDecisionData.decision === '賛成' ? 'agree' : 'disagree'}">
+                    ${initialDecisionData.decision}
+                </div>
+            </div>
+            ${botOpinions.map(opinion => `
+                <div class="comparison-item">
+                    <h5>参加者 ${opinion.bot_id + 1}</h5>
+                    <div class="decision-badge ${opinion.decision === '賛成' ? 'agree' : 'disagree'}">
+                        ${opinion.decision}
+                    </div>
+                </div>
+            `).join('')}
+        `;
+    }
+
+    // チャット機能
+    const chatMessages = document.getElementById('chatMessages');
+    const chatInput = document.getElementById('chatInput');
+    const sendButton = document.getElementById('sendButton');
+    const messageCount = document.getElementById('messageCount');
+    const finishChat = document.getElementById('finishChat');
+
+    function addMessage(content, isUser = false) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = isUser ? 'user-message' : 'ai-message';
+        
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'message-content';
+        contentDiv.textContent = content;
+        
+        messageDiv.appendChild(contentDiv);
+        chatMessages.appendChild(messageDiv);
+        
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function sendMessage() {
+        const message = chatInput.value.trim();
+        if (!message) return;
+
+        addMessage(message, true);
+        chatInput.value = '';
+        sendButton.disabled = true;
+
+        fetch('/ai_chat', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                message: message,
+                decision: initialDecisionData.decision,
+                conversation_count: conversationCount
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            setTimeout(() => {
+                addMessage(data.message, false);
+                conversationCount++;
+                messageCount.textContent = conversationCount;
+                
+                if (conversationCount >= 5) {
+                    chatInput.disabled = true;
+                    sendButton.disabled = true;
+                    finishChat.style.display = 'block';
+                    addMessage('十分な対話ができました。最終決定に進んでください。', false);
+                } else {
+                    sendButton.disabled = false;
+                }
+            }, 1000);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            addMessage('申し訳ございません。エラーが発生しました。', false);
+            sendButton.disabled = false;
+        });
+    }
+
+    if (sendButton) {
+        sendButton.addEventListener('click', sendMessage);
+    }
+    
+    if (chatInput) {
+        chatInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+    }
+
+    // 信頼度スライダー
+    const confidenceSlider = document.getElementById('confidence');
+    const confidenceValue = document.getElementById('confidence-value');
+    
+    if (confidenceSlider) {
+        confidenceSlider.addEventListener('input', function() {
+            confidenceValue.textContent = this.value;
+        });
+    }
+
+    // 最終決定フォーム
+    document.getElementById('finalDecisionForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const total = parseInt(document.getElementById('final-total-weight').textContent);
+        if (total !== 100) {
+            alert('重要度の合計が100%になるよう調整してください。現在の合計: ' + total + '%');
+            return;
+        }
+        
+        const formData = new FormData(this);
+        const data = {
+            trial: parseInt('{{ trial }}'),
+            final_decision: formData.get('final_decision'),
+            final_weights: {},
+            change_reasoning: formData.get('change_reasoning') || '',
+            confidence: parseInt(formData.get('confidence')),
+            initial_decision: initialDecisionData,
+            timestamp: new Date().toISOString()
+        };
+        
+        // 最終重みを取得
+        const finalCriteria = {{ info.criteria | tojson }};
+        finalCriteria.forEach(criterion => {
+            data.final_weights[criterion] = parseInt(formData.get('final_' + criterion));
+        });
+
+        console.log('最終決定データ送信:', data);
+        
+        fetch('/save_final_decision', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => {
+            console.log('最終決定レスポンスステータス:', response.status);
+            return response.json();
+        })
+        .then(result => {
+            console.log('最終決定サーバー応答:', result);
+            if (result.success && result.next) {
+                console.log('次のページへ遷移:', result.next);
+                window.location.href = result.next;
+            } else if (result.error) {
+                alert('エラー: ' + result.error);
+            } else {
+                alert('予期しない応答形式です。');
+                console.error('Unexpected response:', result);
+            }
+        })
+        .catch(error => {
+            console.error('最終決定送信エラー:', error);
+            alert('ネットワークエラーが発生しました: ' + error.message);
+        });
+    });
+
+    // 初期決定表示更新（フェーズ4用）
+    function updateInitialDecisionSummary() {
+        if (initialDecisionData) {
+            const summary = document.getElementById('initialDecisionSummary');
+            if (summary) {
+                summary.innerHTML = `
+                    <div class="decision-badge ${initialDecisionData.decision === '賛成' ? 'agree' : 'disagree'}">
+                        ${initialDecisionData.decision}
+                    </div>
+                    <div class="weight-summary">
+                        ${Object.entries(initialDecisionData.weights).map(([criterion, weight]) => `
+                            <span class="weight-item">${criterion}: ${weight}%</span>
+                        `).join(', ')}
+                    </div>
+                `;
+            }
+        }
+    }
+
+    // フェーズ変更時の処理
+    document.addEventListener('phaseChange', function(e) {
+        if (e.detail.phase === 3) {
+            updateInitialDecisionSummary();
+        }
+    });
+});
+</script>
+{% endblock %}

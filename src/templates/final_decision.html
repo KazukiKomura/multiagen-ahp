@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+
+{% block title %}再意思決定 - 意思決定実験システム{% endblock %}
+
+{% block content %}
+<div class="final-decision-section">
+    <h2>再意思決定フェーズ (トライアル {{ trial }})</h2>
+    <p>他の参加者の意見{% if condition == 'ai-facilitator' %}やAIファシリテーターとの対話{% endif %}を踏まえ、必要に応じて意思決定を変更してください。</p>
+    
+    <div class="initial-decision-reminder">
+        <h3>あなたの初回判断</h3>
+        <div class="decision-summary">
+            <div class="initial-choice">
+                <strong>判断:</strong> 
+                <span class="decision-badge {{ 'agree' if initial_decision.decision == '賛成' else 'disagree' }}">
+                    {{ initial_decision.decision or '未設定' }}
+                </span>
+            </div>
+            
+            {% if initial_decision.weights %}
+            <div class="initial-weights">
+                <strong>重要度設定:</strong>
+                <div class="weight-bars">
+                    {% for criterion, weight in initial_decision.weights.items() %}
+                    <div class="weight-bar-small">
+                        <span class="criterion">{{ criterion }}:</span>
+                        <div class="bar">
+                            <div class="fill" style="width: {{ weight }}%"></div>
+                        </div>
+                        <span class="value">{{ weight }}%</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="other-opinions-summary">
+        <h3>他の参加者の意見</h3>
+        <div class="opinions-grid">
+            {% for opinion in bot_opinions %}
+            <div class="opinion-summary">
+                <h5>参加者 {{ opinion.bot_id + 1 }}</h5>
+                <div class="decision-badge {{ 'agree' if opinion.decision == '賛成' else 'disagree' }}">
+                    {{ opinion.decision }}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <form id="finalDecisionForm">
+        <div class="final-choice">
+            <h4>最終判断</h4>
+            <div class="radio-group">
+                <label>
+                    <input type="radio" name="final_decision" value="賛成" 
+                           {% if initial_decision.decision == '賛成' %}checked{% endif %} required>
+                    <span class="radio-custom"></span>
+                    賛成
+                </label>
+                <label>
+                    <input type="radio" name="final_decision" value="反対" 
+                           {% if initial_decision.decision == '反対' %}checked{% endif %} required>
+                    <span class="radio-custom"></span>
+                    反対
+                </label>
+            </div>
+        </div>
+
+        <div class="final-weights">
+            <h4>最終重要度設定（必要に応じて調整してください）</h4>
+            <div class="weights-container">
+                {% for criterion, weight in initial_decision.weights.items() %}
+                <div class="weight-item">
+                    <label for="final_{{ criterion }}">{{ criterion }}</label>
+                    <div class="weight-controls">
+                        <input type="range" 
+                               id="final_{{ criterion }}" 
+                               name="final_{{ criterion }}" 
+                               min="0" 
+                               max="100" 
+                               value="{{ weight }}" 
+                               step="10"
+                               class="weight-slider">
+                        <span class="weight-value" id="final_{{ criterion }}-value">{{ weight }}</span>%
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            <div class="total-weight">
+                合計: <span id="total-weight">100</span>%
+            </div>
+        </div>
+
+        <div class="change-reasoning">
+            <h4>変更理由（変更がある場合）</h4>
+            <textarea name="change_reasoning" rows="4" 
+                      placeholder="判断や重要度を変更された場合、その理由をお聞かせください"></textarea>
+        </div>
+
+        <div class="confidence-rating">
+            <h4>最終判断への信頼度</h4>
+            <div class="scale-input">
+                <input type="range" id="confidence" name="confidence" min="1" max="7" value="4" class="slider">
+                <div class="scale-labels">
+                    <span>全く信頼していない</span>
+                    <span class="scale-value" id="confidence-value">4</span>
+                    <span>完全に信頼している</span>
+                </div>
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary">最終決定を確定する</button>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const weightSliders = document.querySelectorAll('.weight-slider');
+    const totalWeightDisplay = document.getElementById('total-weight');
+    const confidenceSlider = document.getElementById('confidence');
+    const confidenceValue = document.getElementById('confidence-value');
+    
+    function updateWeights() {
+        let total = 0;
+        weightSliders.forEach(slider => {
+            const value = parseInt(slider.value);
+            total += value;
+            document.getElementById(slider.id + '-value').textContent = value;
+        });
+        
+        totalWeightDisplay.textContent = total;
+        totalWeightDisplay.className = total === 100 ? 'correct' : 'incorrect';
+    }
+
+    weightSliders.forEach(slider => {
+        slider.addEventListener('input', updateWeights);
+    });
+
+    confidenceSlider.addEventListener('input', function() {
+        confidenceValue.textContent = this.value;
+    });
+
+    // フォーム送信
+    document.getElementById('finalDecisionForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const total = parseInt(totalWeightDisplay.textContent);
+        if (total !== 100) {
+            alert('重要度の合計が100%になるよう調整してください。現在の合計: ' + total + '%');
+            return;
+        }
+        
+        const formData = new FormData(this);
+        const data = {
+            trial: {{ trial }},
+            final_decision: formData.get('final_decision'),
+            final_weights: {},
+            change_reasoning: formData.get('change_reasoning') || '',
+            confidence: parseInt(formData.get('confidence')),
+            initial_decision: {{ initial_decision | tojson }}
+        };
+        
+        {% for criterion in initial_decision.weights.keys() %}
+        data.final_weights['{{ criterion }}'] = parseInt(formData.get('final_{{ criterion }}'));
+        {% endfor %}
+
+        fetch('/save_final_decision', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.next) {
+                window.location.href = result.next;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('エラーが発生しました。');
+        });
+    });
+
+    // 初期化
+    updateWeights();
+});
+</script>
+{% endblock %}

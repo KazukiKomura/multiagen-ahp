@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+
+{% block title %}個人意思決定 - 意思決定実験システム{% endblock %}
+
+{% block content %}
+<div class="decision-section">
+    <h2>個人意思決定フェーズ (トライアル {{ trial }})</h2>
+    
+    <div class="decision-info">
+        <h3>{{ info.title }}</h3>
+        <p>{{ info.description }}</p>
+        
+        <div class="criteria-details">
+            <h4>判断基準と詳細情報</h4>
+            {% for criterion, detail in info.details.items() %}
+            <div class="criterion-detail">
+                <strong>{{ criterion }}:</strong> {{ detail }}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <form id="decisionForm">
+        <div class="decision-choice">
+            <h4>1. あなたの判断をお選びください</h4>
+            <div class="radio-group">
+                <label>
+                    <input type="radio" name="decision" value="賛成" required>
+                    <span class="radio-custom"></span>
+                    賛成
+                </label>
+                <label>
+                    <input type="radio" name="decision" value="反対" required>
+                    <span class="radio-custom"></span>
+                    反対
+                </label>
+            </div>
+        </div>
+
+        <div class="weights-section">
+            <h4>2. 各基準の重要度を設定してください（合計100%になるよう調整してください）</h4>
+            <div class="weights-container">
+                {% for criterion in info.criteria %}
+                <div class="weight-item">
+                    <label for="{{ criterion }}">{{ criterion }}</label>
+                    <div class="weight-controls">
+                        <input type="range" 
+                               id="{{ criterion }}" 
+                               name="{{ criterion }}" 
+                               min="0" 
+                               max="100" 
+                               value="20" 
+                               step="10"
+                               class="weight-slider">
+                        <span class="weight-value" id="{{ criterion }}-value">20</span>%
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            <div class="total-weight">
+                合計: <span id="total-weight">100</span>%
+            </div>
+        </div>
+
+        <div class="reasoning-section">
+            <h4>3. 判断理由をお聞かせください（任意）</h4>
+            <textarea name="reasoning" rows="4" placeholder="あなたの判断理由をご記入ください"></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-primary">決定を確定する</button>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const weightSliders = document.querySelectorAll('.weight-slider');
+    const totalWeightDisplay = document.getElementById('total-weight');
+    
+    function updateWeights() {
+        let total = 0;
+        weightSliders.forEach(slider => {
+            const value = parseInt(slider.value);
+            total += value;
+            document.getElementById(slider.id + '-value').textContent = value;
+        });
+        
+        totalWeightDisplay.textContent = total;
+        totalWeightDisplay.className = total === 100 ? 'correct' : 'incorrect';
+    }
+
+    weightSliders.forEach(slider => {
+        slider.addEventListener('input', updateWeights);
+    });
+
+    // 自動調整機能
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && e.ctrlKey) {
+            autoAdjustWeights();
+        }
+    });
+
+    function autoAdjustWeights() {
+        const values = Array.from(weightSliders).map(s => parseInt(s.value));
+        const total = values.reduce((a, b) => a + b, 0);
+        
+        if (total !== 100) {
+            const adjustment = (100 - total) / weightSliders.length;
+            weightSliders.forEach(slider => {
+                const newValue = Math.max(0, Math.min(100, parseInt(slider.value) + adjustment));
+                slider.value = Math.round(newValue);
+            });
+            updateWeights();
+        }
+    }
+
+    // フォーム送信
+    document.getElementById('decisionForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const total = parseInt(totalWeightDisplay.textContent);
+        if (total !== 100) {
+            alert('重要度の合計が100%になるよう調整してください。現在の合計: ' + total + '%');
+            return;
+        }
+        
+        const formData = new FormData(this);
+        const data = {
+            trial: {{ trial }},
+            decision: formData.get('decision'),
+            weights: {},
+            reasoning: formData.get('reasoning') || ''
+        };
+        
+        {% for criterion in info.criteria %}
+        data.weights['{{ criterion }}'] = parseInt(formData.get('{{ criterion }}'));
+        {% endfor %}
+
+        fetch('/save_decision', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.next) {
+                window.location.href = result.next;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('エラーが発生しました。');
+        });
+    });
+
+    // 初期化
+    updateWeights();
+});
+</script>
+{% endblock %}
