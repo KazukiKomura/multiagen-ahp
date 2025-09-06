@@ -2,7 +2,7 @@
 Centralized prompts for LangGraph procedural justice flow.
 
 This module stores system-level and role-specific instructions used by
-langgraph_app.procedural_justice. Keeping prompts here makes the runtime
+the LangGraph flow. Keeping prompts here makes the runtime
 logic cleaner and reduces hard-coding in the main flow.
 """
 
@@ -17,7 +17,7 @@ SYSTEM_PROMPT = (
 # Role instructions per stage (minimal constraints; LLM decides layout)
 ROLE_INSTRUCTIONS = {
     'stage1_prefs_prompt': (
-        "ユーザーのUI上の重み配分（payload.user_weights）を短く確認し、重視する1点と理由を一文で尋ねる。"
+        "ユーザーのUI上の重み配分（payload.user_weights）を短く自然言語で要約し、重視する1点と理由を一文で尋ねる。"
         "見出し・箇条書きは任意。200字以内。"
     ),
     'stage1_prefs_ack': (

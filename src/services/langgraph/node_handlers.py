@@ -6,12 +6,13 @@ Contains all the node processing logic for different stages of the conversation.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Dict
+from typing import TYPE_CHECKING
 
-from .llm_utils import FlowState, judge_meaningful, classify_intent
+from .models import FlowState
+from .llm_utils import judge_meaningful, classify_intent
 
 if TYPE_CHECKING:
-    from .procedural_justice import LGFlow
+    from .flow_engine import LGFlow
 
 
 class NodeHandlers:
@@ -40,48 +41,63 @@ class NodeHandlers:
         weights = state.get('user_weights') or {}
         last = state.get('last_user_input', '')
         payload = {"user_weights": weights, "last_user_text": last}
-        if not last or not judge_meaningful(last):
+        
+        
+        # 確認的な回答（わかりました、了解など）は深掘りが必要
+        confirmatory_responses = ['わかりました', '了解', '理解しました', 'はい', 'わかった', 'オーケー', 'ok', 'OK']
+        is_confirmatory = any(conf in last.lower() for conf in confirmatory_responses) if last else False
+        
+        if not last or not judge_meaningful(last) or is_confirmatory:
             # LLMで短い再確認/深掘りを生成
             msg = self.flow._llm_generate('stage1_prefs_prompt', payload)
             state['ai_response'] = msg
             state['route'] = 'Prefs'  # wait for meaningful input
             self.flow._log(state, 'Stage1_Preferences_Prompt', last, msg)
             return state
-        # meaningful -> LLMで了解文
+        # meaningful -> LLMで了解文を生成し、続けて観点整理も自動生成
+        print(f"DEBUG: Generating stage1_prefs_ack with payload: {payload}")
         ack = self.flow._llm_generate('stage1_prefs_ack', payload)
-        state['ai_response'] = ack
+        print(f"DEBUG: Generated ack: {ack}")
+        
+        # 続けて観点整理（stage2_present）も生成
+        bots = state.get('bot_evaluators', {}) or {}
+        bot_summary = {k: v.get('decision') for k, v in bots.items() if isinstance(v, dict)}
+        print(f"DEBUG: bot_evaluators: {bots}, bot_summary: {bot_summary}")
+        
+        ratio = None
+        try:
+            user = '合格'
+            others = list(bot_summary.values())
+            ratio = f"{others.count('不合格')}対{1 if user=='合格' else 0}"
+        except Exception as e:
+            print(f"DEBUG: Error calculating ratio: {e}")
+            ratio = None
+        
+        analysis_payload = {
+            "profile_facts": state.get('student_info', {}),
+            "user_weights": state.get('user_weights', {}),
+            "minority": True,
+            "bot_evaluators": bot_summary,
+            "ratio": ratio
+        }
+        print(f"DEBUG: Generating stage2_present with payload: {analysis_payload}")
+        analysis = self.flow._llm_generate('stage2_present', analysis_payload)
+        print(f"DEBUG: Generated analysis: {analysis}")
+        
+        # 両方のメッセージを連結
+        combined_response = f"{ack}\n\n{analysis}"
+        print(f"DEBUG: Combined response: {combined_response}")
+        
+        state['ai_response'] = combined_response
         state['route'] = 'Analysis'
-        self.flow._log(state, 'Stage1_Preferences_Ack', last, ack)
+        self.flow._log(state, 'Stage1_Preferences_Ack_and_Stage2_Present', last, combined_response)
         return state
 
     def node_analysis(self, state: FlowState) -> FlowState:
         last = state.get('last_user_input', '')
+        
         # ここではLLMに全面委譲し、構造化はプロンプト側の指示に任せる
-
-        # If user just arrived, present analysis via LLM
-        if not last:
-            # 集計: 他評価者の結論と2対1状況（簡易）
-            bots = state.get('bot_evaluators', {}) or {}
-            bot_summary = {k: v.get('decision') for k, v in bots.items() if isinstance(v, dict)}
-            ratio = None
-            try:
-                user = '合格'
-                others = list(bot_summary.values())
-                ratio = f"{others.count('不合格')}対{1 if user=='合格' else 0}"
-            except Exception:
-                ratio = None
-            payload = {
-                "profile_facts": state.get('student_info', {}),
-                "user_weights": state.get('user_weights', {}),
-                "minority": True,
-                "bot_evaluators": bot_summary,
-                "ratio": ratio
-            }
-            resp = self.flow._llm_generate('stage2_present', payload)
-            state['ai_response'] = resp
-            state['route'] = 'Analysis'
-            self.flow._log(state, 'Stage2_Analysis_Present', last, state['ai_response'])
-            return state
+        # stage2_present は既に node_prefs で処理済み
 
         # Intent classification by tiny LLM (question / appeal / other)
         cls = classify_intent(last, state.get('rule_summary', {}))

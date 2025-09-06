@@ -1,10 +1,10 @@
 """
 AI Chat routes for the multi-agent AHP experiment system.
-Handles AI-facilitated dialogue using the Procedural Justice System.
+Handles AI-facilitated dialogue using the LangGraph-based Procedural Justice System.
 """
 
 from flask import Blueprint, request, jsonify, session
-from ..services.procedural_justice import ProceduralJusticeSystem
+from ..services.langgraph_service import LangGraphService
 from ..repository.session_repository import session_repository
 from ..services.simple_llm import SimpleLLMResponder
 
@@ -13,7 +13,7 @@ ai_chat_bp = Blueprint('ai_chat', __name__)
 
 def generate_ai_response(user_message, user_decision=None):
     """
-    手続き的公正システムによる応答生成
+    LangGraph手続き的公正システムによる応答生成
     
     Args:
         user_message: User's message
@@ -24,56 +24,47 @@ def generate_ai_response(user_message, user_decision=None):
     """
     
     # セッション状態の取得・初期化
-    if 'pj_state' not in session:
-        session['pj_state'] = {
+    if 'lg_state' not in session:
+        session['lg_state'] = {
             'turn': 0,
-            'invariants': {
-                'Voice': False,
-                'Neutrality': False,
-                'Transparency': False,
-                'Respect': True,  # デフォルト True
-                'Consistency': True  # デフォルト True
-            },
-            'voice_summary_ack': False,
-            'appeal_offered': False,
-            'user_priority': None
+            'stage': 0.0,
+            'route': 'Rules',
+            'appeal_made': False,
+            'rules_shown': False,
+            'questions': []
         }
     
-    # ターン数更新
-    session['pj_state']['turn'] += 1
-    
-    # セッションデータ準備（LLM入力を拡充）
+    # セッションデータ準備（LangGraph入力形式）
     session_record = session_repository.get_session(session['session_id']) or {}
     session_data = {
         'student_info': session.get('student_info', {}),
-        'criteria': ['学業成績', '試験スコア', '研究能力', '推薦状', '多様性'],
-        'user_decision': user_decision,
         'decision_data': session_record.get('decision_data', {}),
-        'last_user_text': user_message,
-        # ルール要約・閾値（UIで与えられる情報のみを含める）
         'rule_summary': {
-            'criteria': ['学業成績', '試験スコア', '研究能力', '推薦状', '多様性']
+            'criteria': '5項目の加重平均による総合評価',
+            'threshold_description': '各項目2.5点以上が基準',
+            'evaluation_method': '重み配分に基づく加重平均と多数決'
         },
-        'threshold': session_record.get('threshold'),  # UIから与えられる場合のみ
+        'threshold': session_record.get('threshold', 2.5),
+        'last_user_text': user_message,
     }
     
-    # PJシステム実行
-    pj_system = ProceduralJusticeSystem()
-    result = pj_system.execute_turn(
+    # LangGraphシステム実行
+    lg_service = LangGraphService(enable_logging=True, session_id=session.get('session_id'))
+    result = lg_service.execute_turn(
         message=user_message,
         decision=user_decision or '未定',
-        state=session['pj_state'],
+        state=session['lg_state'],
         session_data=session_data
     )
     
     # セッション状態更新
-    session['pj_state'] = result['state']
+    session['lg_state'] = result['state']
     
     return {
         'message': result['response'],
         'satisfaction_scores': result['satisfaction_scores'],
         'action': result['action'],
-        'turn': session['pj_state']['turn']
+        'turn': session['lg_state']['turn']
     }
 
 
@@ -108,7 +99,7 @@ def ai_chat():
         user_message=user_message,
         ai_response=ai_result['message'],
         satisfaction_scores=ai_result['satisfaction_scores'],
-        pj_state=session['pj_state']
+        pj_state=session['lg_state']
     )
     
     if not success:
@@ -194,15 +185,15 @@ def get_chat_history():
 
 @ai_chat_bp.route('/pj_state')
 def get_pj_state():
-    """Get current procedural justice state"""
+    """Get current LangGraph state"""
     if 'session_id' not in session:
         return jsonify({'error': 'No session'}), 400
     
-    pj_state = session.get('pj_state', {})
+    lg_state = session.get('lg_state', {})
     
     return jsonify({
         'success': True,
-        'state': pj_state
+        'state': lg_state
     })
 
 
@@ -212,19 +203,14 @@ def reset_chat():
     if 'session_id' not in session:
         return jsonify({'error': 'No session'}), 400
     
-    # Reset PJ state
-    session['pj_state'] = {
+    # Reset LangGraph state
+    session['lg_state'] = {
         'turn': 0,
-        'invariants': {
-            'Voice': False,
-            'Neutrality': False,
-            'Transparency': False,
-            'Respect': True,
-            'Consistency': True
-        },
-        'voice_summary_ack': False,
-        'appeal_offered': False,
-        'user_priority': None
+        'stage': 0.0,
+        'route': 'Rules',
+        'appeal_made': False,
+        'rules_shown': False,
+        'questions': []
     }
     
     # Reset chat history

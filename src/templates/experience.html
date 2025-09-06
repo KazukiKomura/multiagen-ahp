@@ -215,12 +215,7 @@
                 
                 <div class="chat-area">
                     <div class="chat-messages" id="chatMessages">
-                        <div class="ai-message">
-                            <div class="message-content">
-                                こんにちは！あなたの意思決定について少しお話ししませんか？
-                                まず、先ほどの判断について、どのような点を最も重視されましたか？
-                            </div>
-                        </div>
+                        <!-- AI初期メッセージは動的に読み込み -->
                     </div>
                     
                     <!-- Loading indicator -->
@@ -432,7 +427,10 @@ document.addEventListener('DOMContentLoaded', function() {
         
         currentPhase = phaseIndex;
         
-        if (phaseIndex === 3) {
+        if (phaseIndex === 2) {
+            // AIチャットフェーズ開始時に手続き説明を取得
+            initializeChat();
+        } else if (phaseIndex === 3) {
             // 最終決定フェーズの重要度スライダー設定
             setTimeout(() => {
                 const finalWeights = setupWeightSliders('[data-phase="3"]');
@@ -601,6 +599,77 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             `).join('')}
         `;
+    }
+
+    // チャット初期化関数
+    function initializeChat() {
+        // まずセッション状態をリセット
+        showLoading(true);
+        
+        fetch('/reset_chat', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(resetData => {
+            if (resetData.success) {
+                // リセット成功後、手続き説明を取得（turn 1）
+                return fetch('/ai_chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: '手続きとルールの説明をお願いします',
+                        decision: initialDecisionData ? initialDecisionData.decision : '未定',
+                        conversation_count: 0
+                    })
+                });
+            } else {
+                throw new Error('チャットセッションのリセットに失敗しました');
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.message) {
+                // 1つ目のメッセージ（手続き説明）を表示
+                const rulesMsg = data.message;
+                addMessage(rulesMsg, false);
+                
+                // すぐに2回目のリクエスト（深掘り質問）を送信
+                return fetch('/ai_chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: 'わかりました',
+                        decision: initialDecisionData ? initialDecisionData.decision : '未定',
+                        conversation_count: 1
+                    })
+                });
+            } else {
+                throw new Error('手続き説明を取得できませんでした');
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            showLoading(false);
+            if (data.success && data.message) {
+                // 2つ目のメッセージ（深掘り質問）を表示
+                const prefsMsg = data.message;
+                addMessage(prefsMsg, false);
+            } else {
+                addMessage('深掘り質問の取得に失敗しました。', false);
+            }
+        })
+        .catch(error => {
+            console.error('初期メッセージ取得エラー:', error);
+            showLoading(false);
+            addMessage('申し訳ございません。初期化に失敗しました。', false);
+        });
     }
 
     // チャット機能

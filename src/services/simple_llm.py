@@ -122,3 +122,57 @@ class SimpleLLMResponder:
 
         # すべて失敗
         raise RuntimeError(f"LLM呼び出しに失敗しました（試行: {tried}, 最終エラー: {last_err}")
+
+    def check_japanese_quality(self, user_message: str) -> Dict[str, Any]:
+        """
+        ユーザーの回答が適切な日本語になっているかをチェック（tinyLLM機能）
+        フローの「きちんとした日本語になっているか、次のフェーズに進んでいいかのチェック」を実装
+        """
+        client = self._get_llm()
+        if client is None:
+            return {"is_valid": True, "reason": "LLM初期化失敗のためスキップ"}
+        
+        system_content = (
+            "あなたは日本語の品質をチェックするアシスタントです。"
+            "ユーザーの回答が以下の基準を満たしているかを判定してください："
+            "1. 日本語として文法的に正しい 2. 意味が理解できる 3. 適切な長さである"
+            "判定結果をJSON形式で返してください: {\"is_valid\": true/false, \"reason\": \"理由\"}"
+        )
+        
+        user_content = f"以下の文章をチェックしてください: 「{user_message}」"
+        
+        try:
+            # 最もシンプルなモデルを使用（効率化のため）
+            model = self.fallback_models[0] if self.fallback_models else "gpt-3.5-turbo"
+            
+            messages = [
+                {"role": "system", "content": system_content},
+                {"role": "user", "content": user_content}
+            ]
+            
+            resp = client.chat.completions.create(
+                model=model,
+                messages=messages,
+                temperature=0.1,
+                max_tokens=200
+            )
+            
+            content = (resp.choices[0].message.content or "").strip()
+            
+            # JSONパースを試行
+            import json
+            try:
+                result = json.loads(content)
+                return result
+            except json.JSONDecodeError:
+                # JSON形式でない場合は内容から判定
+                is_valid = "true" in content.lower() or "有効" in content or "適切" in content
+                return {
+                    "is_valid": is_valid,
+                    "reason": content if len(content) < 100 else "品質チェック完了"
+                }
+                
+        except Exception as e:
+            print(f"[SimpleLLM][QualityCheck] Error: {e}")
+            # エラー時はデフォルトで通す
+            return {"is_valid": True, "reason": "チェック機能エラーのためスキップ"}

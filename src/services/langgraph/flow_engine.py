@@ -1,55 +1,46 @@
 """
-LangGraph implementation of the staged conversational flow.
+LangGraph flow engine for procedural justice conversations.
 
-Stages (see docs/requirements/procedural_justice_langgraph.md):
- 0: Rules (fixed message)
- 1: Preferences confirmation & deep dive (minimal judge)
- 2: Minority framing, symmetric pros/cons, questions & appeal
- 2.5: Request feedback (if appeal)
- 3: Wrap-up
-
-If the official `langgraph` package is unavailable, the flow falls back to a
-single-node runner that preserves the same step-by-step semantics.
+Core LGFlow implementation with LLM integration and graph compilation.
 """
 
 from __future__ import annotations
 
+import json
+import time
 from dataclasses import dataclass, field
-from typing import Any, Dict, Optional, List
+from typing import Any, Dict, Optional
 
-# Logging only; we do not reuse the FSM now
-import sys
-sys.path.append('src')
-from services.session_logger import SessionLogger  # noqa: E402
-
-from .llm_utils import FlowState, judge_meaningful, classify_intent
+from .models import FlowState
 from .node_handlers import NodeHandlers
-
-
-
-
-
-
+from .prompts import SYSTEM_PROMPT, ROLE_INSTRUCTIONS
 
 
 @dataclass
 class LGFlow:
+    """LangGraph-based procedural justice flow engine."""
+    
     enable_logging: bool = True
     session_id: Optional[str] = None
-    logger: Optional[SessionLogger] = field(init=False, default=None)
+    logger: Optional[Any] = field(init=False, default=None)
+    handlers: NodeHandlers = field(init=False)
     _llm_meta: Dict[str, Any] = field(init=False, default_factory=dict)
 
     def __post_init__(self) -> None:
         if self.enable_logging:
-            self.logger = SessionLogger(self.session_id)
+            # Import here to avoid circular dependency
+            try:
+                from ...repository.langgraph_repository import LangGraphLogger
+                self.logger = LangGraphLogger(self.session_id)
+            except ImportError:
+                self.logger = None
         self.handlers = NodeHandlers(self)
 
-    # ---- LLM helpers (src/services/procedural_justice.py 準拠の最小版) ----
     def _get_llm(self):
+        """Get OpenAI client and model configuration."""
         try:
             import os
             from openai import OpenAI
-            # Prefer GPT-5 by default for response generation
             model = os.getenv("OPENAI_MODEL", "gpt-5-chat-latest")
             client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
             fallbacks = [m.strip() for m in os.getenv(
@@ -61,18 +52,19 @@ class LGFlow:
             raise Exception("Failed to initialize LLM")
 
     def _llm_generate(self, stage: str, payload: Dict[str, Any]) -> str:
-        import json, time
-        from .prompts import SYSTEM_PROMPT, ROLE_INSTRUCTIONS
+        """Generate LLM response for given stage and payload."""
         system = SYSTEM_PROMPT
         role_instr = ROLE_INSTRUCTIONS.get(stage, "簡潔に。")
 
         client, model, fallbacks = self._get_llm()
-        self._llm_meta = {"stage": stage, "tried": [], "used": False, "model": None, "duration_ms": 0, "error": None}
-        tried = []
+        self._llm_meta = {"stage": stage, "tried": [], "used": False, "model": None, 
+                         "duration_ms": 0, "error": None}
+        
         for m in [model] + fallbacks:
             if not client or not m:
                 continue
-            tried.append(m)
+            self._llm_meta["tried"].append(m)
+            
             try:
                 t0 = time.time()
                 if m.startswith("gpt-5"):
@@ -81,11 +73,8 @@ class LGFlow:
                         {"role": "user", "content": [{"type": "input_text", "text": json.dumps(payload, ensure_ascii=False)}]}
                     ]
                     resp = client.responses.create(
-                        model=m,
-                        input=input_data,
-                        text={"format": {"type": "text"}},
-                        tools=[], temperature=0.2, max_output_tokens=768, top_p=1,
-                        store=False
+                        model=m, input=input_data, text={"format": {"type": "text"}},
+                        tools=[], temperature=0.2, max_output_tokens=768, top_p=1, store=False
                     )
                     raw = getattr(resp, 'output_text', None) or getattr(getattr(resp, 'text', None), 'content', None) or str(resp)
                 else:
@@ -99,23 +88,24 @@ class LGFlow:
                         response_format={"type": "json_object"}
                     )
                     raw = resp.choices[0].message.content
+                
                 dt = (time.time() - t0) * 1000
                 data = json.loads(raw)
                 items = data.get('candidates', []) if isinstance(data, dict) else []
+                
                 for it in items:
                     if isinstance(it, str) and it.strip():
-                        self._llm_meta.update({"stage": stage, "tried": tried[:], "used": True, "model": m, "duration_ms": dt, "error": None})
+                        self._llm_meta.update({"used": True, "model": m, "duration_ms": dt, "error": None})
                         return it.strip()[:600]
-                # if empty, continue to fallback
+                        
             except Exception as e:
-                self._llm_meta.update({"stage": stage, "tried": tried[:], "used": False, "model": m, "error": f"{type(e).__name__}: {e}"})
+                self._llm_meta.update({"used": False, "model": m, "error": f"{type(e).__name__}: {e}"})
                 continue
-        # fallback minimal
-        if not client:
-            self._llm_meta.update({"stage": stage, "tried": tried[:], "used": False, "model": None, "error": "no_client"})
+
         return "（生成に失敗しました。もう一度入力をお願いします）"
 
     def _log(self, state: FlowState, action: str, user_input: str, response: str) -> None:
+        """Log conversation turn."""
         if not self.logger:
             return
         try:
@@ -130,36 +120,14 @@ class LGFlow:
                 action=action,
                 user_input=user_input or '',
                 user_context=user_ctx,
-                ai_candidates=[],
-                selected_response=response,
-                judge_evaluation={"candidates_count": 0, "selected_index": 0, "action": action, "block": False},
-                watchdog_evaluation={"overall": 0},
-                validation_results=None,
+                ai_response=response,
                 processing_time_ms=self._llm_meta.get('duration_ms', 0)
             )
         except Exception:
             pass
 
-    # ---- Node handlers -----------------------------------------------------
-    def node_rules(self, state: FlowState) -> FlowState:
-        return self.handlers.node_rules(state)
-
-    def node_prefs(self, state: FlowState) -> FlowState:
-        return self.handlers.node_prefs(state)
-
-    # -- hard-coded整形は排除し、LLMに委譲 --
-
-    def node_analysis(self, state: FlowState) -> FlowState:
-        return self.handlers.node_analysis(state)
-
-    def node_request_feedback(self, state: FlowState) -> FlowState:
-        return self.handlers.node_request_feedback(state)
-
-    def node_wrapup(self, state: FlowState) -> FlowState:
-        return self.handlers.node_wrapup(state)
-
-    # ---- Graph runner ------------------------------------------------------
     def compile(self):
+        """Compile LangGraph or return fallback executor."""
         try:
             from langgraph.graph import StateGraph, START, END
             g = StateGraph(FlowState)
@@ -168,36 +136,36 @@ class LGFlow:
             g.add_node('Analysis', self.handlers.node_analysis)
             g.add_node('RequestFeedback', self.handlers.node_request_feedback)
             g.add_node('WrapUp', self.handlers.node_wrapup)
-            # Router from START to the node specified by state['route'] (default Rules)
+            
             def router(s: FlowState) -> str:
                 return s.get('route', 'Rules')
+                
             g.add_conditional_edges(START, router, {
-                'Rules': 'Rules',
-                'Prefs': 'Prefs',
-                'Analysis': 'Analysis',
-                'RequestFeedback': 'RequestFeedback',
-                'WrapUp': 'WrapUp'
+                'Rules': 'Rules', 'Prefs': 'Prefs', 'Analysis': 'Analysis',
+                'RequestFeedback': 'RequestFeedback', 'WrapUp': 'WrapUp'
             })
-            # One node per invoke: each node goes directly to END
-            g.add_edge('Rules', END)
-            g.add_edge('Prefs', END)
-            g.add_edge('Analysis', END)
-            g.add_edge('RequestFeedback', END)
-            g.add_edge('WrapUp', END)
+            
+            for node in ['Rules', 'Prefs', 'Analysis', 'RequestFeedback', 'WrapUp']:
+                g.add_edge(node, END)
+                
             return g.compile()
+            
         except Exception:
-            # Fallback single-step executor preserving semantics
+            # Fallback executor
             class Fallback:
-                def __init__(self, flow: 'LGFlow'):
+                def __init__(self, flow: LGFlow):
                     self.flow = flow
+                    
                 def invoke(self, state: FlowState) -> FlowState:
                     route = state.get('route') or 'Rules'
-                    fn = {
+                    fn_map = {
                         'Rules': self.flow.handlers.node_rules,
                         'Prefs': self.flow.handlers.node_prefs,
                         'Analysis': self.flow.handlers.node_analysis,
                         'RequestFeedback': self.flow.handlers.node_request_feedback,
                         'WrapUp': self.flow.handlers.node_wrapup,
-                    }.get(route, self.flow.handlers.node_rules)
+                    }
+                    fn = fn_map.get(route, self.flow.handlers.node_rules)
                     return fn(state)
+                    
             return Fallback(self)

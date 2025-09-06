@@ -1,28 +1,12 @@
 """
 LLM utilities for procedural justice flow.
 
-Contains LLM client initialization, judgment functions, and data types.
+Contains LLM client initialization and judgment functions.
 """
 
 from __future__ import annotations
 
-from typing import Any, Dict, Optional, TypedDict, List
-
-
-class FlowState(TypedDict, total=False):
-    stage: float  # 0,1,2,2.5,3
-    turn: int
-    last_user_input: str
-    ai_response: str
-    rules_shown: bool
-    user_weights: Dict[str, float]
-    student_info: Dict[str, Any]
-    rule_summary: Dict[str, Any]
-    threshold: float
-    appeal_made: bool
-    questions: List[str]
-    route: str
-    bot_evaluators: Dict[str, Any]
+from typing import Any, Dict, Optional
 
 
 def _get_openai_client():
