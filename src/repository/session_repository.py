@@ -6,6 +6,12 @@ Implements Repository pattern for session data storage and retrieval.
 import sqlite3
 import json
 from typing import Dict, Any, Optional, List
+from datetime import datetime
+try:
+    from zoneinfo import ZoneInfo
+    JST = ZoneInfo("Asia/Tokyo")
+except Exception:
+    JST = None
 
 
 class SessionRepository:
@@ -16,14 +22,13 @@ class SessionRepository:
         self._init_db()
     
     def _init_db(self):
-        """Initialize the database with required tables"""
+        """Initialize the database with required tables (non-destructive)."""
         conn = sqlite3.connect(self.db_path)
         c = conn.cursor()
         
-        # Drop and recreate table with new schema
-        c.execute('DROP TABLE IF EXISTS sessions')
+        # Create sessions table only if it does not exist
         c.execute('''
-            CREATE TABLE sessions (
+            CREATE TABLE IF NOT EXISTS sessions (
                 session_id TEXT PRIMARY KEY,
                 condition TEXT,
                 trial INTEGER,
@@ -37,6 +42,7 @@ class SessionRepository:
             )
         ''')
         
+        # Create ai_chat_logs table only if it does not exist
         c.execute('''
             CREATE TABLE IF NOT EXISTS ai_chat_logs (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -47,12 +53,19 @@ class SessionRepository:
                 satisfaction_scores TEXT,
                 pj_state TEXT,
                 timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (session_id) REFERENCES sessions (id)
+                FOREIGN KEY (session_id) REFERENCES sessions (session_id)
             )
         ''')
         
         conn.commit()
         conn.close()
+
+    def _now_jst_str(self) -> str:
+        """Return current timestamp string in Japan Standard Time (YYYY-MM-DD HH:MM:SS)."""
+        if JST is not None:
+            return datetime.now(JST).strftime("%Y-%m-%d %H:%M:%S")
+        # Fallback: naive localtime string
+        return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
     def create_session(self, session_id: str, condition: str) -> bool:
         """
@@ -69,10 +82,11 @@ class SessionRepository:
             conn = sqlite3.connect(self.db_path)
             c = conn.cursor()
             
+            now_ts = self._now_jst_str()
             c.execute('''
-                INSERT INTO sessions (session_id, condition, phase, trial)
-                VALUES (?, ?, 'pre_questionnaire', 1)
-            ''', (session_id, condition))
+                INSERT INTO sessions (session_id, condition, phase, trial, created_at, updated_at)
+                VALUES (?, ?, 'pre_questionnaire', 1, ?, ?)
+            ''', (session_id, condition, now_ts, now_ts))
             
             conn.commit()
             conn.close()
@@ -152,8 +166,9 @@ class SessionRepository:
                     values.append(value)
             
             if set_clauses:
-                set_clauses.append("updated_at = CURRENT_TIMESTAMP")
+                set_clauses.append("updated_at = ?")
                 query = f"UPDATE sessions SET {', '.join(set_clauses)} WHERE session_id = ?"
+                values.append(self._now_jst_str())
                 values.append(session_id)
                 
                 c.execute(query, values)
@@ -188,15 +203,16 @@ class SessionRepository:
             
             c.execute('''
                 INSERT INTO ai_chat_logs 
-                (session_id, turn, user_message, ai_response, satisfaction_scores, pj_state)
-                VALUES (?, ?, ?, ?, ?, ?)
+                (session_id, turn, user_message, ai_response, satisfaction_scores, pj_state, timestamp)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
             ''', (
                 session_id, 
                 turn, 
                 user_message, 
                 ai_response,
                 json.dumps(satisfaction_scores),
-                json.dumps(pj_state)
+                json.dumps(pj_state),
+                self._now_jst_str()
             ))
             
             conn.commit()

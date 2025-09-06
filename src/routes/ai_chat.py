@@ -6,6 +6,7 @@ Handles AI-facilitated dialogue using the Procedural Justice System.
 from flask import Blueprint, request, jsonify, session
 from ..services.procedural_justice import ProceduralJusticeSystem
 from ..repository.session_repository import session_repository
+from ..services.simple_llm import SimpleLLMResponder
 
 ai_chat_bp = Blueprint('ai_chat', __name__)
 
@@ -41,11 +42,19 @@ def generate_ai_response(user_message, user_decision=None):
     # ターン数更新
     session['pj_state']['turn'] += 1
     
-    # セッションデータ準備
+    # セッションデータ準備（LLM入力を拡充）
+    session_record = session_repository.get_session(session['session_id']) or {}
     session_data = {
         'student_info': session.get('student_info', {}),
         'criteria': ['学業成績', '試験スコア', '研究能力', '推薦状', '多様性'],
-        'user_decision': user_decision
+        'user_decision': user_decision,
+        'decision_data': session_record.get('decision_data', {}),
+        'last_user_text': user_message,
+        # ルール要約・閾値（UIで与えられる情報のみを含める）
+        'rule_summary': {
+            'criteria': ['学業成績', '試験スコア', '研究能力', '推薦状', '多様性']
+        },
+        'threshold': session_record.get('threshold'),  # UIから与えられる場合のみ
     }
     
     # PJシステム実行
@@ -82,7 +91,11 @@ def ai_chat():
     
     # PJシステムによるAI応答生成
     conversation_count = session.get('conversation_count', 0)
-    ai_result = generate_ai_response(user_message, user_decision)
+    try:
+        ai_result = generate_ai_response(user_message, user_decision)
+    except Exception as e:
+        # LLM呼び出し・整形の失敗をクライアントにJSONで返却
+        return jsonify({'success': False, 'error': str(e)}), 500
     
     # 会話カウント更新
     session['conversation_count'] = conversation_count + 1
@@ -118,6 +131,49 @@ def ai_chat():
         'satisfaction_scores': ai_result['satisfaction_scores'],
         'turn': ai_result['turn'],
         'action': ai_result['action']
+    })
+
+
+@ai_chat_bp.route('/ai_chat_simple', methods=['POST'])
+def ai_chat_simple():
+    """軽量LLM: 合否と重みだけで深掘りする最小実装"""
+    if 'session_id' not in session:
+        return jsonify({'error': 'No session'}), 400
+
+    user_message = request.json.get('message', '')
+    user_decision = request.json.get('decision')
+    if not user_message.strip():
+        return jsonify({'error': 'Empty message'}), 400
+
+    # 事前入力の取得（DBのdecision_data優先）
+    session_id = session['session_id']
+    record = session_repository.get_session(session_id) or {}
+    decision_data = record.get('decision_data', {}) if record else {}
+
+    # ターン管理（軽量系は独立カウンタ）
+    session['simple_turn'] = session.get('simple_turn', 0) + 1
+    turn = session['simple_turn']
+
+    try:
+        responder = SimpleLLMResponder()
+        message_text = responder.generate(user_message, decision_data, fallback_decision=user_decision)
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+    # 既存のログテーブルを流用（満足度・状態は空で保存）
+    session_repository.save_ai_chat_turn(
+        session_id=session_id,
+        turn=turn,
+        user_message=user_message,
+        ai_response=message_text,
+        satisfaction_scores={},
+        pj_state={}
+    )
+
+    return jsonify({
+        'success': True,
+        'message': message_text,
+        'turn': turn
     })
 
 

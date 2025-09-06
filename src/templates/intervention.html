@@ -85,8 +85,8 @@ document.addEventListener('DOMContentLoaded', function() {
         chatInput.value = '';
         sendButton.disabled = true;
 
-        // AIレスポンスを取得
-        fetch('/ai_chat', {
+        // AIレスポンスを取得（常に軽量LLMを使用）
+        fetch('/ai_chat_simple', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -99,7 +99,8 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(response => response.json())
         .then(data => {
             setTimeout(() => {
-                addMessage(data.response, false);
+                const aiMsg = data.message || data.response || '...';
+                addMessage(aiMsg, false);
                 conversationCount++;
                 messageCount.textContent = conversationCount;
                 

@@ -13,6 +13,7 @@ Architecture:
 
 from flask import Flask
 import os
+from dotenv import load_dotenv
 
 # Import blueprints
 from .routes.main import main_bp
@@ -24,6 +25,8 @@ from .repository.session_repository import session_repository
 
 def create_app():
     """Application factory pattern"""
+    # Load environment variables from .env (for OPENAI_API_KEY, etc.)
+    load_dotenv()
     # Configure Flask to use src/templates and src/static
     app = Flask(__name__, 
                 template_folder='templates',

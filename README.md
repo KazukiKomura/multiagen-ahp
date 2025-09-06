@@ -9,7 +9,9 @@
 ## 🎯 主要特徴
 
 - **手続き的公正システム**: Voice、Neutrality、Transparency、Respect、Consistencyの5要素を完全実装
-- **3層LLMアーキテクチャ**: LLM-G (生成)、LLM-J (評価)、LLM-W (監視) による品質保証
+- **2つのAIアーキテクチャ**: 
+  - **複雑系**: 3層LLMアーキテクチャ（LLM-G/LLM-J/LLM-W）による品質保証
+  - **簡易系**: 軽量SimpleLLMResponderによる効率的な対話
 - **有限状態機械 (FSM)**: 優先度制御による対話フロー管理
 - **リアルタイム満足度監視**: 5軸満足度スコアによる自動補修システム
 - **統合UI**: 4段階の意思決定プロセスを単一ページで実現
@@ -21,7 +23,8 @@
 ```
 ├── src/
 │   ├── services/           # ビジネスロジック層
-│   │   └── procedural_justice.py   # 手続き的公正システム
+│   │   ├── procedural_justice.py   # 手続き的公正システム
+│   │   └── simple_llm.py          # 軽量LLMシステム
 │   ├── repository/         # データアクセス層
 │   │   └── session_repository.py   # セッションデータ管理
 │   ├── routes/            # Web層
@@ -105,7 +108,7 @@ python check_db.py help               # ヘルプ表示
 5. **Appeal** → 異議申立て機会の提供
 6. **Summary** → 手続き完了報告
 
-### 3層LLMアーキテクチャ
+### 3層LLMアーキテクチャ（複雑系）
 ```python
 # LLM-G: 複数候補生成 (k=2-3)
 candidates = generate_candidates(action, context)
@@ -122,6 +125,20 @@ scores = llm_watchdog(response, state)
 # 自動補修システム (スコア < 1.2)
 if scores['overall'] < 1.2:
     repair = execute_repair(scores)
+```
+
+### SimpleLLMResponder（簡易系）
+```python
+# 軽量AIシステム: ユーザーの事前判断と重みのみで深掘り
+class SimpleLLMResponder:
+    def generate(self, user_message, decision_data):
+        # 判断と重みを取得
+        decision = decision_data.get('user_decision')
+        weights = decision_data.get('user_weights', {})
+        
+        # GPT-5系モデル対応 + フォールバック
+        # 1文承認 + 1つ質問の簡潔応答（150字以内）
+        return simple_response
 ```
 
 ## 📊 データベース構造
@@ -181,6 +198,8 @@ CREATE TABLE ai_chat_logs (
 - `/admin/data` - 全セッションデータの閲覧
 - `/pj_state` - 現在の手続き的公正状態
 - `/chat_history` - セッション別チャット履歴
+- `/ai_chat` - 手続き的公正システムによる高度なAI対話
+- `/ai_chat_simple` - 軽量SimpleLLMResponderによる簡潔なAI対話
 
 ## ⚙️ カスタマイズ
 
@@ -217,6 +236,32 @@ def select_challenging_students():
 3. **意思決定変化** (初期 vs 最終判断)
 4. **対話品質** (ターン数、内容の深度)
 5. **少数派納得感** (主観的満足度、信頼度)
+
+## 🧪 シミュレーション・テストツール
+
+### PJSystemSimulator
+```bash
+# 手続き的公正システムの自動テスト実行
+python pj_simulation.py
+
+# 結果ファイル: pj_simulation_results_YYYYMMDD_HHMMSS.json
+```
+
+### ProceduralJusticeFlow
+```bash
+# 対話フローの検証・デバッグ
+python procedural_justice_flow.py
+
+# 結果ファイル: procedural_justice_flow_results_YYYYMMDD_HHMMSS.json
+```
+
+### データベース確認ツール
+```bash
+# セッション・チャットログの詳細確認
+python check_db.py                    # 全体概要
+python check_db.py session <id>       # セッション詳細
+python check_db.py chat <session_id>  # チャット履歴
+```
 
 ## 📚 理論的背景
 

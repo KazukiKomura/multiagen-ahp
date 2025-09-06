@@ -223,6 +223,12 @@
                         </div>
                     </div>
                     
+                    <!-- Loading indicator -->
+                    <div class="loading-indicator" id="loadingIndicator" style="display: none;">
+                        <div class="loading-spinner"></div>
+                        <div class="loading-text">AIが回答を考えています...</div>
+                    </div>
+                    
                     <div class="chat-input-container">
                         <input type="text" id="chatInput" placeholder="メッセージを入力してください..." maxlength="500">
                         <button id="sendButton" class="btn btn-primary">送信</button>
@@ -318,6 +324,51 @@
 {% endblock %}
 
 {% block scripts %}
+<style>
+/* Loading indicator styles */
+.loading-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    margin: 10px 0;
+    border: 1px solid #e9ecef;
+}
+
+.loading-spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid #e9ecef;
+    border-top: 2px solid #007bff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-right: 10px;
+}
+
+.loading-text {
+    color: #6c757d;
+    font-size: 14px;
+    font-style: italic;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Chat input disabled state */
+.chat-input-container.loading input {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.chat-input-container.loading button {
+    opacity: 0.6;
+    pointer-events: none;
+}
+</style>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     console.log('✓ DOMContentLoaded event fired');
@@ -579,7 +630,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
         addMessage(message, true);
         chatInput.value = '';
-        sendButton.disabled = true;
+        
+        // ローディング表示開始
+        showLoading(true);
 
         fetch('/ai_chat', {
             method: 'POST',
@@ -594,8 +647,12 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .then(response => response.json())
         .then(data => {
+            // ローディング表示終了
+            showLoading(false);
+            
             setTimeout(() => {
-                addMessage(data.message, false);
+                const aiMsg = data.message || data.response || '...';
+                addMessage(aiMsg, false);
                 conversationCount++;
                 messageCount.textContent = conversationCount;
                 
@@ -604,16 +661,32 @@ document.addEventListener('DOMContentLoaded', function() {
                     sendButton.disabled = true;
                     finishChat.style.display = 'block';
                     addMessage('十分な対話ができました。最終決定に進んでください。', false);
-                } else {
-                    sendButton.disabled = false;
                 }
-            }, 1000);
+            }, 500);
         })
         .catch(error => {
             console.error('Error:', error);
+            showLoading(false);
             addMessage('申し訳ございません。エラーが発生しました。', false);
-            sendButton.disabled = false;
         });
+    }
+
+    // ローディング表示制御関数
+    function showLoading(show) {
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const chatInputContainer = document.querySelector('.chat-input-container');
+        
+        if (show) {
+            loadingIndicator.style.display = 'flex';
+            chatInputContainer.classList.add('loading');
+            sendButton.disabled = true;
+            chatInput.disabled = true;
+        } else {
+            loadingIndicator.style.display = 'none';
+            chatInputContainer.classList.remove('loading');
+            sendButton.disabled = false;
+            chatInput.disabled = false;
+        }
     }
 
     if (sendButton) {
