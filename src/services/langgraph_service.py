@@ -94,8 +94,11 @@ class LangGraphService:
         # Update with session state
         flow_state['turn'] = session_state.get('turn', 0) + 1
         flow_state['last_user_input'] = message
-        flow_state['stage'] = self._determine_stage(session_state, message)
-        flow_state['route'] = self._determine_route(session_state, flow_state['stage'])
+
+        # ルートは基本的にノードで制御し、ここでは保持のみ（自動前進しない）
+        flow_state['route'] = self._determine_route(session_state)
+        # ステージはルートから導出（整合のため）
+        flow_state['stage'] = self._determine_stage(flow_state['route'])
         
         # Inject session context
         flow_state['user_weights'] = session_data.get('decision_data', {}).get('user_weights', {})
@@ -121,36 +124,24 @@ class LangGraphService:
             'rules_shown': flow_state.get('rules_shown', False),
             'questions': flow_state.get('questions', []),
             'route': flow_state.get('route', 'Rules'),
+            'prefs_ok': flow_state.get('prefs_ok', new_state.get('prefs_ok', False)),
         })
         return new_state
     
-    def _determine_stage(self, session_state: Dict[str, Any], message: str) -> float:
-        """Determine current conversation stage."""
-        current_stage = session_state.get('stage', 0.0)
-        turn = session_state.get('turn', 0)
-        
-        # Stage progression logic
-        if turn == 0:
-            return 0.0  # Rules
-        elif current_stage < 1.0:
-            return 1.0  # Preferences
-        elif current_stage < 2.0:
-            return 2.0  # Analysis
-        elif session_state.get('appeal_made', False) and current_stage < 2.5:
-            return 2.5  # Request feedback
-        else:
-            return 3.0  # Wrap-up
-    
-    def _determine_route(self, session_state: Dict[str, Any], stage: float) -> str:
-        """Determine next route based on stage."""
+    def _determine_stage(self, route: str) -> float:
+        """ルートから現在のステージを導出（自動前進しない）。"""
         stage_to_route = {
-            0.0: 'Rules',
-            1.0: 'Prefs', 
-            2.0: 'Analysis',
-            2.5: 'RequestFeedback',
-            3.0: 'WrapUp'
+            'Rules': 0.0,
+            'Prefs': 1.0,
+            'Analysis': 2.0,
+            'RequestFeedback': 2.5,
+            'WrapUp': 3.0
         }
-        return stage_to_route.get(stage, 'Rules')
+        return stage_to_route.get(route or 'Rules', 0.0)
+    
+    def _determine_route(self, session_state: Dict[str, Any]) -> str:
+        """現在のルートを維持（ノードでのみ遷移）。"""
+        return session_state.get('route', 'Rules')
     
     def _determine_action(self, flow_state: FlowState) -> str:
         """Determine action type from flow state."""

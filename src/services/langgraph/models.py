@@ -25,6 +25,7 @@ class FlowState(TypedDict, total=False):
     questions: List[str]
     route: str
     bot_evaluators: Dict[str, Any]
+    prefs_ok: bool
 
 
 @dataclass
