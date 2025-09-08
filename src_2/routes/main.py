@@ -199,7 +199,7 @@ def save_decision():
         session_data = session_repository.get_session(session_id)
         decision_data = session_data.get('decision_data', {}) if session_data else {}
         
-        # Update decision data（初回判断）
+        # Update decision data
         decision_data.update({
             'user_decision': data.get('decision'),
             'user_weights': data.get('weights', {}),
@@ -207,17 +207,6 @@ def save_decision():
             'trial': session.get('trial', 1),
             'timestamp': data.get('timestamp')
         })
-
-        # 参加者の事前判断・重みを決定して永続化
-        criteria = ['学業成績', '試験スコア', '研究能力', '推薦状', '多様性']
-        from ..utils.data import generate_participant_opinions
-        trial = session.get('trial', 1)
-        user_initial = decision_data.get('user_decision')
-        if user_initial:
-            opinions = generate_participant_opinions(user_initial, criteria, trial, session_id)
-            decision_data['participant_opinions'] = opinions
-            decision_data['participant_decisions'] = [op['decision'] for op in opinions]
-            session['participant_decisions'] = decision_data['participant_decisions']
         
         print(f"保存する決定データ: {decision_data}")
         
@@ -228,8 +217,15 @@ def save_decision():
         )
         
         if success:
-            print("成功: 初回判断・参加者意見を保存")
-            return jsonify({'success': True, 'participant_opinions': decision_data.get('participant_opinions', [])})
+            # Generate bot opinions for the next phase (JavaScript expects this)
+            from ..utils.data import generate_bot_opinions_for_student
+            bot_opinions = generate_bot_opinions_for_student()
+            
+            print(f"成功: bot_opinions生成完了")
+            return jsonify({
+                'success': True, 
+                'bot_opinions': bot_opinions
+            })
         else:
             print("エラー: データベース保存に失敗")
             return jsonify({'error': 'Failed to save decision'}), 500
@@ -338,8 +334,7 @@ def save_final_decision():
                     session_repository.update_session(session_id, student_data=formatted)
                 next_url = url_for('main.experience')
             else:
-                # 本番セッションでは、事後質問紙の前に最終結果アナウンスページを表示
-                next_url = url_for('main.final_outcome')
+                next_url = url_for('main.questionnaire', phase='post')
 
             print(f"成功: 次のURL = {next_url}")
             return jsonify({'success': True, 'next': next_url})
@@ -360,64 +355,6 @@ def complete():
     
     return render_template('complete.html',
                          condition=session['condition'])
-
-
-@main_bp.route('/final_outcome')
-def final_outcome():
-    """Announce the final decision (majority vote) before post-questionnaire.
-
-    Majority is calculated among: user's final decision and two participant opinions.
-    For main sessions (trial>=2), participants' decisions are set to be the opposite
-    of the user's initial decision (as used in the comparison view).
-    """
-    if 'session_id' not in session:
-        return redirect(url_for('main.index'))
-
-    trial = session.get('trial', 1)
-    if trial == 1:
-        # 練習ではこのページはスキップ
-        return redirect(url_for('main.experience'))
-
-    # 直近の決定データを取得
-    session_data = session_repository.get_session(session['session_id']) or {}
-    decision_data = session_data.get('decision_data', {})
-
-    user_initial = decision_data.get('user_decision')  # フェーズ1
-    user_final = decision_data.get('final_decision')   # フェーズ4
-
-    # 参加者（ボット）の決定は固定ルール（変更しない）
-    votes = []
-    if user_final:
-        votes.append({'who': 'あなた', 'decision': user_final})
-
-    # 本番セッションの参加者判断
-    # 1) セッションに固定済み（save_decision時）のものがあればそれを使用
-    # 2) なければ「初回判断の反対」を採用
-    part_decisions = session.get('participant_decisions')
-    if isinstance(part_decisions, list) and len(part_decisions) >= 2:
-        votes.append({'who': '参加者 1', 'decision': part_decisions[0]})
-        votes.append({'who': '参加者 2', 'decision': part_decisions[1]})
-    elif user_initial:
-        opposite = '合格' if user_initial == '不合格' else '不合格'
-        votes.append({'who': '参加者 1', 'decision': opposite})
-        votes.append({'who': '参加者 2', 'decision': opposite})
-
-    # 多数決の計算
-    counts = {'合格': 0, '不合格': 0}
-    for v in votes:
-        if v['decision'] in counts:
-            counts[v['decision']] += 1
-    outcome = '合格' if counts['合格'] >= counts['不合格'] else '不合格'
-
-    # 保存（任意）
-    decision_data['group_outcome'] = outcome
-    session_repository.update_session(session['session_id'], decision_data=decision_data)
-
-    return render_template('final_outcome.html',
-                           trial=trial,
-                           votes=votes,
-                           outcome=outcome,
-                           condition=session.get('condition'))
 
 
 @main_bp.route('/admin/data')

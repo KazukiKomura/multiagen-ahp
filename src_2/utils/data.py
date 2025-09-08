@@ -8,7 +8,6 @@ import os
 import random
 import statistics
 from typing import List, Dict, Any, Optional
-import random as _random
 
 
 def load_student_data() -> List[Dict[str, Any]]:
@@ -309,48 +308,3 @@ def generate_bot_opinions_for_student() -> List[Dict[str, Any]]:
         bot_opinions.append(opinion)
     
     return bot_opinions
-
-
-def generate_participant_opinions(user_decision: str,
-                                  criteria: List[str],
-                                  trial: int,
-                                  session_id: str) -> List[Dict[str, Any]]:
-    """
-    参加者2名の意見（決定と重み）を決定的に生成する。
-    - 練習(trial==1): 決定はランダム
-    - 本番(trial>=2): 決定はユーザーの初回判断の反対
-    - 重み: 10%刻み、合計100%（セッションIDとtrialから決定的な乱数シード）
-    """
-    rng = _random.Random()
-    rng.seed(f"{session_id}:{trial}:participants")
-
-    def gen_weights() -> Dict[str, int]:
-        n = len(criteria)
-        remaining = 100
-        weights: Dict[str, int] = {}
-        for i, c in enumerate(criteria):
-            if i == n - 1:
-                weights[c] = remaining
-            else:
-                min_w = max(10, remaining - (n - i - 1) * 70)
-                max_w = min(70, remaining - (n - i - 1) * 10)
-                step_count = (max_w - min_w) // 10
-                w = min_w + rng.randrange(step_count + 1) * 10
-                weights[c] = w
-                remaining -= w
-        return weights
-
-    def gen_decision() -> str:
-        if trial == 1:
-            return '合格' if rng.random() < 0.5 else '不合格'
-        # 本番はユーザーの初回判断の反対
-        return '不合格' if user_decision == '合格' else '合格'
-
-    opinions: List[Dict[str, Any]] = []
-    for bot_id in range(2):
-        opinions.append({
-            'bot_id': bot_id,
-            'decision': gen_decision(),
-            'weights': gen_weights(),
-        })
-    return opinions

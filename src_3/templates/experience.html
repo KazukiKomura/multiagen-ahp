@@ -229,18 +229,23 @@
                         <!-- JavaScript で動的に表示 -->
                     </div>
                 </div>
+
                 <div class="chat-area">
                     <div class="chat-messages" id="chatMessages">
                         <!-- AI初期メッセージは動的に読み込み -->
                     </div>
+
+                    <!-- Loading indicator -->
                     <div class="loading-indicator" id="loadingIndicator" style="display: none;">
                         <div class="loading-spinner"></div>
                         <div class="loading-text">AIが回答を考えています...</div>
                     </div>
+
                     <div class="chat-input-container">
                         <input type="text" id="chatInput" placeholder="メッセージを入力してください..." maxlength="500">
                         <button id="sendButton" class="btn btn-primary">送信</button>
                     </div>
+
                     <div class="chat-info">
                         <p>会話回数: <span id="messageCount">0</span>（最低4回）</p>
                         <button class="btn btn-secondary" id="finishChat" style="display: none;" onclick="nextPhase()">対話を終了して最終決定へ</button>
@@ -408,7 +413,6 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentPhase = 0;
     let initialDecisionData = null;
     let botOpinions = [];
-    const criteriaOrder = {{ info.criteria | tojson }}; // 表示順序を固定
     let conversationCount = 0;
 
     // --- Chat message rendering helpers (newline + lightweight Markdown) ---
@@ -587,15 +591,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     });
                     finalWeights.updateWeights();
-
-                    // 初回の判断を最終判断のデフォルトに設定
-                    try {
-                        const val = initialDecisionData.decision;
-                        const radio = document.querySelector(`input[name="final_decision"][value="${val}"]`);
-                        if (radio) radio.checked = true;
-                    } catch (e) {
-                        console.warn('最終判断ラジオの初期化に失敗:', e);
-                    }
                 }
             }, 100);
         }
@@ -674,6 +669,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
         initialDecisionData = data;
         
+        // 動的にボット意見を生成
+        botOpinions = generateBotOpinions(data.decision, data.weights, criteria);
+        console.log('ユーザー決定:', data.decision);
+        console.log('動的生成されたボット意見:', botOpinions);
+        console.log('参加者1の決定:', botOpinions[0]?.decision);
+        console.log('参加者2の決定:', botOpinions[1]?.decision);
+
         console.log('意思決定データ送信:', data);
 
         fetch('/save_decision', {
@@ -690,12 +692,7 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(result => {
             console.log('サーバー応答:', result);
             if (result.success) {
-                // サーバで確定した参加者意見を採用
-                if (Array.isArray(result.participant_opinions)) {
-                    botOpinions = result.participant_opinions;
-                }
-                console.log('確定された参加者意見:', botOpinions);
-                // 直接次のフェーズへ進む
+                // botOpinionsは既に生成済みなので、直接次のフェーズへ進む
                 showPhase1Content();
                 nextPhase();
             } else if (result.error) {
@@ -749,8 +746,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     ${decisionText}
                 </div>
                 <div class="weight-bars">
-                    ${criteriaOrder.map((criterion) => {
-                        const weight = opinion.weights[criterion] ?? 0;
+                    ${Object.entries(opinion.weights).map(([criterion, weight]) => {
+                        // 重みを10%刻みに丸める
                         const roundedWeight = Math.round(weight / 10) * 10;
                         return `
                         <div class="weight-bar-small">
@@ -785,9 +782,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     ${myDecisionText}
                 </div>
                 <div class="weight-bars-mini">
-                    ${criteriaOrder.map((criterion) => {
-                        const weight = initialDecisionData.weights[criterion] ?? 0;
-                        return `
+                    ${Object.entries(initialDecisionData.weights).map(([criterion, weight]) => `
                         <div class="weight-bar-mini">
                             <span class="criterion-mini">${criterion}:</span>
                             <div class="bar-mini">
@@ -795,8 +790,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             </div>
                             <span class="value-mini">${weight}%</span>
                         </div>
-                        `;
-                    }).join('')}
+                    `).join('')}
                 </div>
             </div>
             ${botOpinions.map(opinion => {
@@ -809,8 +803,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         ${decisionText}
                     </div>
                     <div class="weight-bars-mini">
-                        ${criteriaOrder.map((criterion) => {
-                            const weight = opinion.weights[criterion] ?? 0;
+                        ${Object.entries(opinion.weights).map(([criterion, weight]) => {
                             const roundedWeight = Math.round(weight / 10) * 10;
                             return `
                             <div class="weight-bar-mini">

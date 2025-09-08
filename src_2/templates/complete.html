@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}実験完了 - 意思決定実験システム{% endblock %}
+
+{% block content %}
+<div class="complete-section">
+    <h2>実験完了</h2>
+    <div class="completion-message">
+        <div class="success-icon">✓</div>
+        <p>すべてのトライアルが完了しました。ご協力ありがとうございました。</p>
+    </div>
+    
+    <div class="experiment-summary">
+        <h3>実験概要</h3>
+        <div class="summary-items">
+            <div class="summary-item">
+                <strong>条件:</strong> {{ condition }}
+            </div>
+            <div class="summary-item">
+                <strong>完了トライアル数:</strong> 4/4
+            </div>
+            <div class="summary-item">
+                <strong>実験日時:</strong> <span id="completion-time"></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="next-steps">
+        <h3>お疲れさまでした</h3>
+        <p>実験データは安全に保存されました。</p>
+        <p>ご不明な点がございましたら、実験担当者までお問い合わせください。</p>
+    </div>
+
+    <div class="actions">
+        <a href="/" class="btn btn-secondary">新しい実験を開始</a>
+        <button onclick="window.print()" class="btn btn-outline">完了証明書を印刷</button>
+    </div>
+</div>
+
+<div class="certificate" id="certificate">
+    <div class="certificate-content">
+        <h2>実験参加証明書</h2>
+        <p>実験ID: {{ session.session_id if session.session_id else 'N/A' }}</p>
+        <p>条件: {{ condition }}</p>
+        <p>完了日時: <span class="cert-date"></span></p>
+        <p>この証明書は、上記の意思決定実験に最後まで参加されたことを証明します。</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const now = new Date();
+    const timeString = now.toLocaleString('ja-JP');
+    
+    document.getElementById('completion-time').textContent = timeString;
+    document.querySelectorAll('.cert-date').forEach(el => {
+        el.textContent = timeString;
+    });
+});
+</script>
+{% endblock %}
