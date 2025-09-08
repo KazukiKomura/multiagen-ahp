@@ -27,8 +27,8 @@
             </div>
             
             <div class="chat-info">
-                <p>※ 5回程度の対話を行った後、次のフェーズに進んでください。</p>
-                <p>会話回数: <span id="messageCount">0</span>/5</p>
+                <p>※ 最低4回の対話を行ったら、次のフェーズに進めます（続けても可）。</p>
+                <p>会話回数: <span id="messageCount">0</span></p>
             </div>
         </div>
 
@@ -61,7 +61,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const nextAction = document.getElementById('nextAction');
     
     let conversationCount = 0;
-    const maxConversations = 5;
+    const minConversations = 4;
 
     function addMessage(content, isUser = false) {
         const messageDiv = document.createElement('div');
@@ -85,8 +85,8 @@ document.addEventListener('DOMContentLoaded', function() {
         chatInput.value = '';
         sendButton.disabled = true;
 
-        // AIレスポンスを取得（常に軽量LLMを使用）
-        fetch('/ai_chat_simple', {
+        // AIレスポンスを取得（統一: /ai_chat を使用）
+        fetch('/ai_chat', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -104,14 +104,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 conversationCount++;
                 messageCount.textContent = conversationCount;
                 
-                if (conversationCount >= maxConversations) {
-                    chatInput.disabled = true;
-                    sendButton.disabled = true;
+                if (conversationCount >= minConversations) {
                     nextAction.style.display = 'block';
-                    addMessage('十分な対話ができました。次のフェーズに進んでください。', false);
-                } else {
-                    sendButton.disabled = false;
+                    addMessage('最低回数を満たしました。必要なら続けてもOKです。', false);
                 }
+                sendButton.disabled = false;
             }, 1000);
         })
         .catch(error => {

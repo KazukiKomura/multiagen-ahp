@@ -4,9 +4,27 @@
 
 {% block content %}
 <div class="questionnaire-section">
-    <h2>{% if phase == 'pre' %}事前{% else %}事後{% endif %}質問紙 (トライアル {{ trial }})</h2>
+    <h2>
+        {% if phase == 'pre' %}
+            事前質問紙
+        {% else %}
+            {% if trial == 1 %}
+                練習セッション完了 - フィードバック
+            {% else %}
+                事後質問紙 (本番 {{ trial - 1 }}/3)
+            {% endif %}
+        {% endif %}
+    </h2>
+    
+    {% if phase == 'post' and trial == 1 %}
+    <div class="trial-complete-message">
+        <p><strong>練習セッションが完了しました！</strong><br>
+        これから本番セッション1を開始します。練習の経験を活かして判断してください。</p>
+    </div>
+    {% endif %}
     
     <form id="questionnaireForm">
+        {% if phase == 'pre' %}
         <div class="question-group">
             <label for="q1">1. 現在の気分はいかがですか？（1: とても悪い - 7: とても良い）</label>
             <div class="scale-input">
@@ -30,10 +48,11 @@
                 </div>
             </div>
         </div>
+        {% endif %}
 
-        {% if phase == 'post' %}
+        {% if phase == 'post' and trial > 1 %}
         <div class="question-group">
-            <label for="q3">3. このトライアルでの意思決定プロセスに満足していますか？（1: 全く満足していない - 7: とても満足している）</label>
+            <label for="q3">3. このセッションでの意思決定プロセスに満足していますか？（1: 全く満足していない - 7: とても満足している）</label>
             <div class="scale-input">
                 <input type="range" id="q3" name="satisfaction" min="1" max="7" value="4" class="slider">
                 <div class="scale-labels">
@@ -57,10 +76,6 @@
         </div>
         {% endif %}
 
-        <div class="question-group">
-            <label for="comments">追加コメント（任意）</label>
-            <textarea id="comments" name="comments" rows="4" placeholder="何かございましたらご記入ください"></textarea>
-        </div>
 
         <button type="submit" class="btn btn-primary">次へ進む</button>
     </form>

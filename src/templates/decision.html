@@ -4,17 +4,21 @@
 
 {% block content %}
 <div class="decision-section">
-    <h2>個人意思決定フェーズ (トライアル {{ trial }})</h2>
+    <div class="compact-trial-header">
+        <h2>{{ info.title }}</h2>
+        <span class="trial-badge">トライアル {{ trial }}</span>
+    </div>
     
-    <div class="decision-info">
-        <h3>{{ info.title }}</h3>
-        <p>{{ info.description }}</p>
+    <div class="decision-info-compact">
+        <div class="scenario-brief">
+            <p>{{ info.description }}</p>
+        </div>
         
-        <div class="criteria-details">
-            <h4>判断基準と詳細情報</h4>
+        <div class="criteria-summary">
             {% for criterion, detail in info.details.items() %}
-            <div class="criterion-detail">
-                <strong>{{ criterion }}:</strong> {{ detail }}
+            <div class="criterion-compact">
+                <span class="criterion-label">{{ criterion }}:</span>
+                <span class="criterion-value">{{ detail }}</span>
             </div>
             {% endfor %}
         </div>
@@ -37,34 +41,28 @@
             </div>
         </div>
 
-        <div class="weights-section">
-            <h4>2. 各基準の重要度を設定してください（合計100%になるよう調整してください）</h4>
-            <div class="weights-container">
+        <div class="weights-section-compact">
+            <h4>2. 重要度設定（合計100%）</h4>
+            <div class="weights-grid">
+                {% set decision_initial_weight = (100 / info.criteria|length)|round|int %}
                 {% for criterion in info.criteria %}
-                <div class="weight-item">
-                    <label for="{{ criterion }}">{{ criterion }}</label>
-                    <div class="weight-controls">
-                        <input type="range" 
-                               id="{{ criterion }}" 
-                               name="{{ criterion }}" 
-                               min="0" 
-                               max="100" 
-                               value="20" 
-                               step="10"
-                               class="weight-slider">
-                        <span class="weight-value" id="{{ criterion }}-value">20</span>%
-                    </div>
+                <div class="weight-item-compact">
+                    <label class="weight-label">{{ criterion }}</label>
+                    <input type="range" 
+                           id="{{ criterion }}" 
+                           name="{{ criterion }}" 
+                           min="0" 
+                           max="100" 
+                           value="{{ decision_initial_weight }}" 
+                           step="10"
+                           class="weight-slider-compact">
+                    <span class="weight-value-compact" id="{{ criterion }}-value">{{ decision_initial_weight }}</span>%
                 </div>
                 {% endfor %}
             </div>
-            <div class="total-weight">
+            <div class="total-display">
                 合計: <span id="total-weight">100</span>%
             </div>
-        </div>
-
-        <div class="reasoning-section">
-            <h4>3. 判断理由をお聞かせください（任意）</h4>
-            <textarea name="reasoning" rows="4" placeholder="あなたの判断理由をご記入ください"></textarea>
         </div>
 
         <button type="submit" class="btn btn-primary">決定を確定する</button>
@@ -75,7 +73,7 @@
 {% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const weightSliders = document.querySelectorAll('.weight-slider');
+    const weightSliders = document.querySelectorAll('.weight-slider-compact');
     const totalWeightDisplay = document.getElementById('total-weight');
     
     function updateWeights() {
@@ -119,18 +117,35 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('decisionForm').addEventListener('submit', function(e) {
         e.preventDefault();
         
+        // 判定の選択をチェック
+        const decisionSelected = document.querySelector('input[name="decision"]:checked');
+        if (!decisionSelected) {
+            alert('賛成または反対を選択してください。');
+            return;
+        }
+        
         const total = parseInt(totalWeightDisplay.textContent);
         if (total !== 100) {
             alert('重要度の合計が100%になるよう調整してください。現在の合計: ' + total + '%');
             return;
         }
         
+        // 全て同じ重みかチェック
+        const weights = Array.from(weightSliders).map(slider => parseInt(slider.value));
+        const allSame = weights.every(w => w === weights[0]);
+        
+        if (allSame) {
+            const confirmed = confirm('全ての基準が同じ重みになっています。このまま進んでもよろしいですか？');
+            if (!confirmed) {
+                return;
+            }
+        }
+        
         const formData = new FormData(this);
         const data = {
             trial: {{ trial }},
             decision: formData.get('decision'),
-            weights: {},
-            reasoning: formData.get('reasoning') || ''
+            weights: {}
         };
         
         {% for criterion in info.criteria %}

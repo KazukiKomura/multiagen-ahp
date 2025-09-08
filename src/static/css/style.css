@@ -22,33 +22,25 @@ body {
 }
 
 /* ヘッダー */
-header {
+header, .compact-header {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
-    padding: 30px;
-    border-radius: 10px;
-    margin-bottom: 30px;
+    padding: 5px 10px;
+    border-radius: 3px;
+    margin-bottom: 10px;
     text-align: center;
 }
 
-header h1 {
-    font-size: 2.2em;
-    margin-bottom: 10px;
-    font-weight: 300;
+header h1, .compact-header small {
+    font-size: 0.75em;
+    margin-bottom: 2px;
+    font-weight: 500;
 }
 
 .experiment-info {
-    display: flex;
-    justify-content: center;
-    gap: 30px;
-    margin-top: 15px;
-    font-size: 1.1em;
-}
-
-.experiment-info span {
-    background: rgba(255, 255, 255, 0.2);
-    padding: 8px 15px;
-    border-radius: 20px;
+    font-size: 0.65em;
+    color: rgba(255, 255, 255, 0.9);
+    margin-top: 2px;
 }
 
 /* メインコンテンツ */
@@ -142,6 +134,48 @@ main {
     color: #6c757d;
     margin-bottom: 25px;
     line-height: 1.6;
+}
+
+/* セッションバナー */
+.session-banner {
+    padding: 15px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    text-align: center;
+    font-weight: 500;
+}
+
+.trial-banner {
+    background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+    border: 2px solid #2196f3;
+    color: #1565c0;
+}
+
+.main-banner {
+    background: linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 100%);
+    border: 2px solid #4caf50;
+    color: #2e7d32;
+}
+
+.trial-complete-message {
+    background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+    border: 2px solid #ff9800;
+    color: #f57c00;
+    padding: 20px;
+    margin: 20px 0;
+    border-radius: 10px;
+    text-align: center;
+}
+
+.trial-complete-message p {
+    margin: 0;
+    font-weight: 500;
+    line-height: 1.6;
+}
+
+.trial-complete-message strong {
+    font-weight: 700;
+    color: #e65100;
 }
 
 /* 質問紙スタイル */
@@ -246,6 +280,145 @@ textarea:focus {
 
 .criterion-detail:last-child {
     border-bottom: none;
+}
+
+/* コンパクトな意思決定デザイン */
+.compact-trial-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #667eea;
+}
+
+.compact-trial-header h2 {
+    margin: 0;
+    font-size: 1.3em;
+    color: #2c3e50;
+}
+
+.trial-badge {
+    background: #667eea;
+    color: white;
+    padding: 4px 12px;
+    border-radius: 15px;
+    font-size: 0.8em;
+    font-weight: 500;
+}
+
+.decision-info-compact {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 6px;
+    margin-bottom: 20px;
+}
+
+.scenario-brief p {
+    margin: 0 0 15px 0;
+    font-size: 0.95em;
+    color: #2c3e50;
+}
+
+.criteria-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 8px;
+}
+
+.criterion-compact {
+    background: white;
+    padding: 8px 12px;
+    border-radius: 4px;
+    border: 1px solid #e9ecef;
+    font-size: 0.85em;
+}
+
+.criterion-label {
+    font-weight: 600;
+    color: #667eea;
+    display: inline-block;
+    min-width: 60px;
+}
+
+.criterion-value {
+    color: #2c3e50;
+}
+
+.weights-section-compact {
+    margin: 15px 0;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 6px;
+}
+
+.weights-section-compact h4 {
+    margin-bottom: 12px;
+    font-size: 1em;
+    color: #2c3e50;
+}
+
+.weights-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.weight-item-compact {
+    background: white;
+    padding: 10px;
+    border-radius: 4px;
+    border: 1px solid #e9ecef;
+    text-align: center;
+}
+
+.weight-label {
+    display: block;
+    font-weight: 500;
+    font-size: 0.8em;
+    color: #2c3e50;
+    margin-bottom: 8px;
+}
+
+.weight-slider-compact {
+    width: 100%;
+    height: 4px;
+    margin-bottom: 8px;
+}
+
+.weight-value-compact {
+    font-weight: bold;
+    color: #667eea;
+    font-size: 0.9em;
+}
+
+.total-display {
+    text-align: center;
+    font-weight: bold;
+    font-size: 1em;
+    padding: 8px;
+    background: white;
+    border-radius: 4px;
+    border: 2px solid #667eea;
+    color: #667eea;
+}
+
+.reasoning-compact {
+    margin: 15px 0;
+    padding: 12px;
+    background: #f8f9fa;
+    border-radius: 6px;
+}
+
+.reasoning-compact h4 {
+    margin-bottom: 8px;
+    font-size: 1em;
+    color: #2c3e50;
+}
+
+.reasoning-compact textarea {
+    min-height: 50px;
 }
 
 .decision-choice {
@@ -394,6 +567,21 @@ input[type="radio"] {
 .decision-badge.disagree {
     background: #f8d7da;
     color: #721c24;
+}
+
+/* 合格/不合格の新しい色スキーム */
+.decision-badge.pass {
+    background: #d4edda;
+    color: #155724;
+    border: 2px solid #28a745;
+    font-weight: bold;
+}
+
+.decision-badge.fail {
+    background: #f8d7da;
+    color: #721c24;
+    border: 2px solid #dc3545;
+    font-weight: bold;
 }
 
 .weight-visualization {
@@ -583,9 +771,8 @@ footer {
 .experience-section {
     display: flex;
     flex-direction: column;
-    height: 100vh;
-    max-height: 100vh;
-    overflow: hidden;
+    min-height: 100vh;
+    overflow: visible;
 }
 
 /* 候補者プロフィール表示 */
@@ -906,7 +1093,8 @@ footer {
     border-radius: 6px;
     padding: 12px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    overflow: hidden;
+    overflow: visible;
+    min-height: 0;
 }
 
 /* プログレスバー */
@@ -975,13 +1163,21 @@ footer {
 /* フェーズコンテンツ */
 .phase-content {
     display: none;
-    flex: 1;
-    overflow-y: auto;
+    flex: 0 1 auto;
+    overflow: visible;
     padding-right: 10px;
+    min-height: 0;
 }
 
 .phase-content.active {
+    display: flex;
+    flex-direction: column;
+}
+
+.phase-content.active.no-scroll {
     display: block;
+    overflow: visible;
+    max-height: none;
 }
 
 .phase-content h3 {
@@ -1064,6 +1260,49 @@ footer {
     color: #667eea;
 }
 
+/* ミニ重みバー（チャット比較用） */
+.weight-bars-mini {
+    margin-top: 8px;
+}
+
+.weight-bar-mini {
+    display: flex;
+    align-items: center;
+    margin: 3px 0;
+    font-size: 0.75em;
+}
+
+.weight-bar-mini .criterion-mini {
+    width: 60px;
+    font-weight: 500;
+    font-size: 0.7em;
+}
+
+.weight-bar-mini .bar-mini {
+    flex: 1;
+    height: 8px;
+    background: #e9ecef;
+    border-radius: 4px;
+    margin: 0 5px;
+    position: relative;
+    overflow: hidden;
+}
+
+.weight-bar-mini .fill-mini {
+    height: 100%;
+    background: linear-gradient(90deg, #667eea, #764ba2);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+.weight-bar-mini .value-mini {
+    width: 25px;
+    text-align: right;
+    font-weight: bold;
+    color: #667eea;
+    font-size: 0.7em;
+}
+
 /* チャット分割表示 */
 .split-view {
     display: grid;
@@ -1076,7 +1315,12 @@ footer {
     background: #f8f9fa;
     padding: 12px;
     border-radius: 6px;
-    overflow-y: auto;
+    /* 左の参考情報を常時可視化（最小変更） */
+    position: sticky;
+    top: 12px;
+    max-height: calc(100vh - 24px);
+    overflow: auto;
+    z-index: 1; /* ヘッダー下で十分 */
 }
 
 .opinions-sidebar h4 {
@@ -1091,6 +1335,10 @@ footer {
     margin: 6px 0;
     border-radius: 4px;
     border: 1px solid #e9ecef;
+}
+
+.comparison-item .decision-badge {
+    margin-bottom: 6px;
 }
 
 .comparison-item h5 {
@@ -1241,7 +1489,10 @@ footer {
     
     .opinions-sidebar {
         order: 2;
+        /* 狭幅ではstickyを無効化して通常表示 */
+        position: static;
         max-height: 200px;
+        overflow: auto;
     }
     
     .chat-area {
@@ -1263,6 +1514,122 @@ footer {
     .step {
         margin: 0 6px;
     }
+}
+
+/* スクロール無効化 */
+.no-scroll {
+    overflow: visible !important;
+    max-height: none !important;
+    height: auto !important;
+}
+
+.decision-info-panel.no-scroll {
+    overflow: visible;
+    max-height: none;
+    height: auto;
+}
+
+.evaluation-categories.no-scroll {
+    overflow: visible;
+    max-height: none;
+    height: auto;
+}
+
+.phase-content.no-scroll {
+    overflow: visible;
+    max-height: none;
+    height: auto;
+    flex: none;
+}
+
+.weights-section.no-scroll,
+.weights-container.no-scroll {
+    overflow: visible !important;
+    max-height: none !important;
+    height: auto !important;
+}
+
+/* 意見セクションのスクロール無効化 */
+.opinions-comparison.no-scroll,
+.my-opinion.no-scroll,
+.others-opinions.no-scroll,
+.opinions-grid.no-scroll {
+    overflow: visible !important;
+    max-height: none !important;
+    height: auto !important;
+}
+
+/* 新しいコンパクトスタイル */
+.decision-info-panel.compact {
+    padding: 15px;
+    margin-bottom: 15px;
+}
+
+.candidate-profile.compact .profile-header h4 {
+    font-size: 1.1em;
+    margin-bottom: 10px;
+    color: #2c3e50;
+}
+
+.evaluation-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.eval-item {
+    background: white;
+    padding: 8px;
+    border-radius: 6px;
+    border: 1px solid #e9ecef;
+    font-size: 0.85em;
+}
+
+.eval-item strong {
+    color: #667eea;
+    margin-right: 5px;
+}
+
+.letter-badge {
+    display: inline-block;
+    padding: 2px 6px;
+    margin: 0 2px;
+    border-radius: 3px;
+    font-size: 0.75em;
+    font-weight: bold;
+}
+
+.letter-badge.excellent {
+    background: #d4edda;
+    color: #155724;
+}
+
+.letter-badge.average {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.letter-badge.weak {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.required {
+    color: #dc3545;
+    font-size: 0.8em;
+    font-weight: normal;
+}
+
+.warning-message {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    color: #856404;
+    padding: 8px 12px;
+    border-radius: 6px;
+    margin: 10px 0;
+    font-size: 0.9em;
+    font-weight: 500;
 }
 
 @media print {
