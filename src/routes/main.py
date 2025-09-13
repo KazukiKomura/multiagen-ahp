@@ -214,7 +214,22 @@ def save_decision():
         trial = session.get('trial', 1)
         user_initial = decision_data.get('user_decision')
         if user_initial:
-            opinions = generate_participant_opinions(user_initial, criteria, trial, session_id)
+            # chat_test からのオーバーライド（任意）
+            incoming = data.get('participant_opinions')
+            def _is_valid(op):
+                try:
+                    if op.get('decision') not in ['合格', '不合格']:
+                        return False
+                    w = op.get('weights', {})
+                    keys = set(w.keys())
+                    return keys == set(criteria) and all(isinstance(w[k], (int, float)) for k in criteria)
+                except Exception:
+                    return False
+            if isinstance(incoming, list) and len(incoming) >= 2 and _is_valid(incoming[0]) and _is_valid(incoming[1]):
+                opinions = incoming[:2]
+            else:
+                opinions = generate_participant_opinions(user_initial, criteria, trial, session_id)
+
             decision_data['participant_opinions'] = opinions
             decision_data['participant_decisions'] = [op['decision'] for op in opinions]
             session['participant_decisions'] = decision_data['participant_decisions']
@@ -425,3 +440,9 @@ def admin_data():
     """Admin data view"""
     sessions = session_repository.get_all_sessions()
     return render_template('admin_data.html', sessions=sessions)
+
+
+@main_bp.route('/chat_test')
+def chat_test():
+    """AIチャット機能のテストページ（論理エンジン統合版）"""
+    return render_template('chat_test.html')

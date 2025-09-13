@@ -137,10 +137,6 @@
             </div>
             <div class="step" data-step="2">
                 <span class="step-number">3</span>
-                <span class="step-label">AIチャット</span>
-            </div>
-            <div class="step" data-step="3">
-                <span class="step-number">4</span>
                 <span class="step-label">最終決定</span>
             </div>
         </div>
@@ -216,46 +212,11 @@
                     </div>
                 </div>
             </div>
-            <button class="btn btn-primary" onclick="nextPhase()">AIチャットへ進む</button>
+            <button class="btn btn-primary" onclick="nextPhase()">最終決定へ進む</button>
         </div>
 
-        <!-- フェーズ3: AIチャット -->
+        <!-- フェーズ3: 最終決定 -->
         <div class="phase-content" data-phase="2">
-            <h3>AIファシリテーターとの対話</h3>
-            <div class="split-view">
-                <div class="opinions-sidebar">
-                    <h4>意見の比較</h4>
-                    <div id="comparisonView">
-                        <!-- JavaScript で動的に表示 -->
-                    </div>
-                </div>
-
-                <div class="chat-area">
-                    <div class="chat-messages" id="chatMessages">
-                        <!-- AI初期メッセージは動的に読み込み -->
-                    </div>
-
-                    <!-- Loading indicator -->
-                    <div class="loading-indicator" id="loadingIndicator" style="display: none;">
-                        <div class="loading-spinner"></div>
-                        <div class="loading-text">AIが回答を考えています...</div>
-                    </div>
-
-                    <div class="chat-input-container">
-                        <input type="text" id="chatInput" placeholder="メッセージを入力してください..." maxlength="500">
-                        <button id="sendButton" class="btn btn-primary">送信</button>
-                    </div>
-
-                    <div class="chat-info">
-                        <p>会話回数: <span id="messageCount">0</span>（最低4回）</p>
-                        <button class="btn btn-secondary" id="finishChat" style="display: none;" onclick="nextPhase()">対話を終了して最終決定へ</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- フェーズ4: 最終決定 -->
-        <div class="phase-content" data-phase="3">
             <h3>最終決定</h3>
             <div class="final-decision-area">
                 <div class="decision-comparison">
@@ -576,12 +537,9 @@ document.addEventListener('DOMContentLoaded', function() {
         currentPhase = phaseIndex;
 
         if (phaseIndex === 2) {
-            // AIチャットフェーズ開始時に手続き説明を取得
-            initializeChat();
-        } else if (phaseIndex === 3) {
             // 最終決定フェーズの重要度スライダー設定
             setTimeout(() => {
-                const finalWeights = setupWeightSliders('[data-phase="3"]');
+                const finalWeights = setupWeightSliders('[data-phase="2"]');
                 // 初期値を設定
                 if (initialDecisionData) {
                     Object.entries(initialDecisionData.weights).forEach(([criterion, weight]) => {
@@ -591,13 +549,22 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     });
                     finalWeights.updateWeights();
+
+                    // 初回の判断を最終判断のデフォルトに設定
+                    try {
+                        const val = initialDecisionData.decision;
+                        const radio = document.querySelector(`input[name="final_decision"][value="${val}"]`);
+                        if (radio) radio.checked = true;
+                    } catch (e) {
+                        console.warn('最終判断ラジオの初期化に失敗:', e);
+                    }
                 }
             }, 100);
         }
     }
 
     window.nextPhase = function() {
-        if (currentPhase < 3) {
+        if (currentPhase < 2) {
             showPhase(currentPhase + 1);
         }
     };
@@ -719,17 +686,6 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="decision-badge ${myDecisionClass}">
                 ${myDecisionText}
             </div>
-            <div class="weight-bars">
-                ${Object.entries(initialDecisionData.weights).map(([criterion, weight]) => `
-                    <div class="weight-bar-small">
-                        <span class="criterion">${criterion}:</span>
-                        <div class="bar">
-                            <div class="fill" style="width: ${weight}%"></div>
-                        </div>
-                        <span class="value">${weight}%</span>
-                    </div>
-                `).join('')}
-            </div>
         `;
 
         // 他の参加者の意見表示
@@ -745,27 +701,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="decision-badge ${decisionClass}">
                     ${decisionText}
                 </div>
-                <div class="weight-bars">
-                    ${Object.entries(opinion.weights).map(([criterion, weight]) => {
-                        // 重みを10%刻みに丸める
-                        const roundedWeight = Math.round(weight / 10) * 10;
-                        return `
-                        <div class="weight-bar-small">
-                            <span class="criterion">${criterion}:</span>
-                            <div class="bar">
-                                <div class="fill" style="width: ${roundedWeight}%"></div>
-                            </div>
-                            <span class="value">${roundedWeight}%</span>
-                        </div>
-                        `;
-                    }).join('')}
-                </div>
             </div>
             `;
         }).join('');
 
-        // フェーズ3の比較表示も更新
-        updateComparisonView();
+        // チャットフェーズ削除に伴い比較ビュー更新は不要
     }
 
     function updateComparisonView() {
@@ -1043,7 +983,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // フェーズ変更時の処理
     document.addEventListener('phaseChange', function(e) {
-        if (e.detail.phase === 3) {
+        if (e.detail.phase === 2) {
             updateInitialDecisionSummary();
         }
     });

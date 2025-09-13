@@ -7,6 +7,7 @@ Streamlitの `streamlit_simple_chat.py` と同等の吹き出し・やり取り�
 import os
 from flask import Blueprint, request, jsonify, session
 from ..repository.session_repository import session_repository
+from ..utils import argumentation_engine  # 論理エンジンをインポート
 from typing import List, Dict, Any
 import json
 
@@ -219,6 +220,36 @@ def ai_chat():
     try:
         model = os.getenv('OPENAI_RESPONSES_MODEL', 'gpt-4.1')
         ctx = build_llm_context()
+
+        # === 論理エンジンによる議論分析 ===
+        try:
+            # 1. 論理エンジンを実行して、議論の構造を分析
+            arguments = argumentation_engine.extract_atomic_arguments(ctx)
+            attacks = argumentation_engine.determine_attacks(arguments)
+            debate_summary = argumentation_engine.summarize_debate(arguments, attacks)
+
+            # 2. 分析結果をLLMのコンテキストに追加
+            ctx['argumentation_analysis'] = debate_summary
+            
+            # 3. 議論構造に基づく推奨質問も生成
+            focused_question = argumentation_engine.generate_focused_question(debate_summary, messages)
+            ctx['suggested_question'] = focused_question
+
+            # デバッグ出力（論理エンジン分析結果）
+            if str(os.getenv('DEBUG_LLM_CONTEXT', '')).lower() in ('1', 'true', 'yes', 'on'):
+                print("\n===== 論理エンジン分析結果 =====")
+                print(f"抽出された主張数: {len(arguments)}")
+                print(f"攻撃関係数: {len(attacks)}")
+                print(f"論点: {debate_summary.get('key_conflict_point', 'N/A')}")
+                print(f"推奨質問: {focused_question}")
+                print("===== 分析結果終了 =====\n")
+        except Exception as analysis_error:
+            print(f"論理エンジン分析エラー: {analysis_error}")
+            # 分析失敗時はデフォルトの分析結果を設定
+            ctx['argumentation_analysis'] = {
+                "key_conflict_point": "分析データが不足しています。",
+                "user_claim_summary": "ユーザーの主張を分析中です。"
+            }
 
         # Debug print + persist last context (opt-in by env or always safe)
         try:
