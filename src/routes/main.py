@@ -49,7 +49,7 @@ def questionnaire(phase):
     
     return render_template('questionnaire.html', 
                          phase=phase, 
-                         condition=session['condition'],
+                         condition=session.get('condition', 'ai'),
                          trial=session.get('trial', 1))
 
 

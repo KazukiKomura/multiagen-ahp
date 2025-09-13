@@ -252,6 +252,17 @@
         <!-- フェーズ4: 最終決定 -->
         <div class="phase-content" data-phase="3">
             <h3>最終決定</h3>
+            <div class="final-guide">
+                <div class="guide-title">このステップで行うこと</div>
+                <ul class="guide-list">
+                    <li>下の「初回の判断」を確認</li>
+                    <li>必要なら「最終判定」を変更</li>
+                    <li>重みを微調整（合計100%）</li>
+                    <li>変更理由（任意）と信頼度を入力</li>
+                    <li>「最終決定を確定する」をクリック</li>
+                </ul>
+                <div class="guide-note">提出後は取り消しできません。慎重にご確認ください。</div>
+            </div>
             <div class="final-decision-area">
                 <div class="decision-comparison">
                     <div class="initial-decision">
@@ -281,6 +292,7 @@
 
                     <div class="final-weights">
                         <h4>最終重要度設定</h4>
+                        <p class="hint-text">初回の重みを初期値として読み込み済みです。必要に応じて合計が100%になるよう微調整してください。</p>
                         <div class="weights-container">
                             {% set final_initial_weight = (100 / info.criteria|length)|round|int %}
                             {% for criterion in info.criteria %}
@@ -300,9 +312,9 @@
                             </div>
                             {% endfor %}
                         </div>
-                        <div class="total-weight">
-                            合計: <span id="final-total-weight">100</span>%
-                        </div>
+                            <div class="total-weight">
+                                合計: <span id="final-total-weight">100</span>%
+                            </div>
                     </div>
 
                     <div class="change-reasoning">
@@ -334,6 +346,28 @@
 {% block scripts %}
 <style>
 /* Loading indicator styles */
+/* Final decision guidance */
+.final-guide {
+    background: #f8f9ff;
+    border: 1px solid #e0e7ff;
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin: 8px 0 16px;
+}
+.final-guide .guide-title {
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 6px;
+}
+.final-guide .guide-list {
+    margin: 6px 0 8px 18px;
+}
+.final-guide .guide-list li { margin: 2px 0; }
+.final-guide .guide-note {
+    font-size: 12px;
+    color: #6b7280;
+}
+.hint-text { color: #6b7280; font-size: 13px; margin: 6px 0 10px; }
 .loading-indicator {
     display: flex;
     align-items: center;
@@ -597,6 +631,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         console.warn('最終判断ラジオの初期化に失敗:', e);
                     }
                 }
+                // 初回の判断サマリーを更新
+                try { updateInitialDecisionSummary(); } catch (e) { console.warn('初回判断サマリー更新失敗', e); }
             }, 100);
         }
     }
