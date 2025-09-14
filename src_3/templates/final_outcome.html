@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}最終意思決定 - 意思決定実験システム{% endblock %}
+
+{% block content %}
+<div class="final-outcome-section">
+    <h2>本セッションの最終意思決定</h2>
+    <p>このセッションの最終結果は <strong>多数決</strong> により以下の通り決定されました。</p>
+
+    <div class="outcome-card">
+        <div class="outcome-label {{ 'pass' if outcome == '合格' else 'fail' }}">
+            最終決定: {{ outcome }}
+        </div>
+        <div class="vote-list">
+            {% for v in votes %}
+            <div class="vote-item">
+                <span class="voter">{{ v.who }}</span>
+                <span class="vote {{ 'pass' if v.decision == '合格' else 'fail' }}">{{ v.decision }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        <p class="note">最終意思決定は常に多数決で決まります。</p>
+    </div>
+
+    <div class="actions" style="margin-top: 16px;">
+        <a href="{{ url_for('main.questionnaire', phase='post') }}" class="btn btn-primary">事後質問紙へ進む</a>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// 追加のスクリプトは不要（静的表示のみ）
+</script>
+{% endblock %}
+

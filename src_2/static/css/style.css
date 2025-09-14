@@ -739,6 +739,46 @@ input[type="radio"] {
     text-align: left;
 }
 
+/* 最終意思決定アナウンス */
+.final-outcome-section {
+    max-width: 720px;
+    margin: 0 auto;
+}
+
+.outcome-card {
+    background: #f8f9fa;
+    padding: 16px;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.outcome-label {
+    font-size: 1.1em;
+    font-weight: 600;
+    margin-bottom: 10px;
+}
+.outcome-label.pass { color: #2e7d32; }
+.outcome-label.fail { color: #c62828; }
+
+.vote-list {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+}
+.vote-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #fff;
+    border: 1px solid #e9ecef;
+    border-radius: 6px;
+    padding: 8px 12px;
+}
+.vote-item .voter { color: #2c3e50; font-weight: 500; }
+.vote-item .vote.pass { color: #2e7d32; font-weight: 600; }
+.vote-item .vote.fail { color: #c62828; font-weight: 600; }
+.final-outcome-section .note { color: #6c757d; font-size: 0.9em; margin-top: 8px; }
+
 .actions {
     margin-top: 40px;
     display: flex;

@@ -137,6 +137,10 @@ function initializeFormValidation() {
     const forms = document.querySelectorAll('form');
     
     forms.forEach(form => {
+        // 質問紙フォームはテンプレート側で独自検証を実行するため除外
+        if (form.id === 'questionnaireForm') {
+            return;
+        }
         form.addEventListener('submit', function(e) {
             if (!validateForm(this)) {
                 e.preventDefault();
