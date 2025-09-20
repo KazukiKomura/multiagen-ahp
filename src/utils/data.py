@@ -6,7 +6,6 @@ Handles student data loading, selection, and formatting operations.
 import csv
 import os
 import random
-import statistics
 from typing import List, Dict, Any, Optional
 import random as _random
 
@@ -28,110 +27,13 @@ def load_student_data() -> List[Dict[str, Any]]:
     return students
 
 
-def select_challenging_students() -> List[Dict[str, Any]]:
-    """
-    判定が困難で議論を誘発しやすい学生を選別
-    - decision=1,2 (境界線ケース)から選択
-    - 強みと弱みが混在している学生を優先
-    - 多様な背景を持つ学生を含める
-    
-    Returns:
-        List[Dict]: 選別された困難な判定ケースの学生リスト
-    """
-    students_data = load_student_data()
-    
-    # 境界線ケース（decision=1,2）を抽出
-    boundary_cases = [s for s in students_data if int(s.get('decision', 0)) in [1, 2]]
-    
-    if not boundary_cases:
-        return students_data[:4]  # フォールバック
-    
-    # 判定困難度を計算する関数
-    def calculate_difficulty_score(student):
-        score = 0
-        
-        # 基本スコア - decision=1,2は基本的に困難
-        if int(student.get('decision', 0)) in [1, 2]:
-            score += 10
-        
-        # 強みと弱みの混在度を計算
-        gpa = float(student.get('gpa', 0))
-        gre_q = int(student.get('gre_quant', 0))
-        gre_v = int(student.get('gre_verbal', 0))
-        gre_w = float(student.get('gre_writing', 0))
-        sop = float(student.get('sop_score', 0))
-        div = float(student.get('diversity_score', 0))
-        
-        # 正規化スコア (0-1)
-        norm_gpa = gpa / 4.0
-        norm_gre_q = (gre_q - 130) / 40
-        norm_gre_v = (gre_v - 130) / 40
-        norm_gre_w = gre_w / 6.0
-        norm_sop = (sop - 1) / 4
-        norm_div = (div - 1) / 4
-        
-        scores = [norm_gpa, norm_gre_q, norm_gre_v, norm_gre_w, norm_sop, norm_div]
-        
-        # 分散が大きい（強みと弱みが混在）ほど困難
-        if len(scores) > 1:
-            variance = statistics.variance(scores)
-            score += variance * 20  # 分散を重み付け
-        
-        # 中程度のスコア（0.4-0.7）は判定困難
-        avg_score = sum(scores) / len(scores)
-        if 0.4 <= avg_score <= 0.7:
-            score += 15
-        
-        # 推薦状が混在している場合は困難
-        rec_strong = int(student.get('rec_letter_1_strong', 0)) + int(student.get('rec_letter_2_strong', 0)) + int(student.get('rec_letter_3_strong', 0))
-        rec_weak = int(student.get('rec_letter_1_weak', 0)) + int(student.get('rec_letter_2_weak', 0)) + int(student.get('rec_letter_3_weak', 0))
-        if rec_strong > 0 and rec_weak > 0:
-            score += 10
-        
-        # 機関ランクが中位（2）は判定困難
-        if student.get('institution_rank') == '2':
-            score += 5
-            
-        return score
-    
-    # 困難度順にソート
-    challenging_students = sorted(boundary_cases, key=calculate_difficulty_score, reverse=True)
-    
-    # 多様性を確保しながら選択
-    selected = []
-    used_majors = set()
-    used_regions = set()
-    
-    for student in challenging_students:
-        if len(selected) >= 12:  # 余裕をもって12名選択
-            break
-            
-        major = student.get('major', 'Unknown')
-        region = student.get('region', 'Unknown')
-        
-        # 多様性確保: 同じ専攻・地域は2名まで
-        major_count = sum(1 for s in selected if s.get('major') == major)
-        region_count = sum(1 for s in selected if s.get('region') == region)
-        
-        if major_count < 2 and region_count < 2:
-            selected.append(student)
-            used_majors.add(major)
-            used_regions.add(region)
-    
-    # 12名に満たない場合は残りをランダムで追加
-    if len(selected) < 12:
-        remaining = [s for s in challenging_students if s not in selected]
-        selected.extend(random.sample(remaining, min(12 - len(selected), len(remaining))))
-    
-    return selected
 
 
 def get_student_for_trial(trial: int, session_id: str) -> Optional[Dict[str, Any]]:
     """
-    トライアル別に適切な難易度の学生を選択
-    trial 1: やや易しい（判定困難だが議論しやすい）
-    trial 2-3: 中程度の難易度
-    trial 4: 最も困難（強みと弱みが複雑に混在）
+    トライアル別に学生を選択（4名の固定データ用）
+    trial 1（練習）: 1人目固定
+    trial 2-4（本番）: 2-4人目をセッションIDベースでランダム順序
     
     Args:
         trial: トライアル番号 (1-4)
@@ -140,32 +42,32 @@ def get_student_for_trial(trial: int, session_id: str) -> Optional[Dict[str, Any
     Returns:
         Dict: 選択された学生データ、または None
     """
-    challenging_students = select_challenging_students()
+    students_data = load_student_data()
     
-    if not challenging_students:
+    if len(students_data) < 4:
         return None
     
-    # セッションIDとトライアルを組み合わせてシードを作成（再現性確保）
-    seed_value = hash(f"{session_id}_{trial}") % 2**32
-    random.seed(seed_value)
-    
-    # トライアル別の選択戦略
     if trial == 1:
-        # やや易しい: 困難度下位30%から選択
-        candidates = challenging_students[int(len(challenging_students) * 0.7):]
-    elif trial in [2, 3]:
-        # 中程度: 困難度中位40%から選択
-        start = int(len(challenging_students) * 0.3)
-        end = int(len(challenging_students) * 0.7)
-        candidates = challenging_students[start:end]
-    else:  # trial == 4
-        # 最困難: 困難度上位30%から選択
-        candidates = challenging_students[:int(len(challenging_students) * 0.3)]
-    
-    if not candidates:
-        candidates = challenging_students  # フォールバック
+        # 練習: 1人目固定
+        return students_data[0]
+    else:
+        # 本番: 2-4人目をセッションIDベースでシャッフルして順次選択
+        remaining_students = students_data[1:4]  # 2-4人目 (index 1,2,3)
         
-    return random.choice(candidates)
+        # セッションIDでシード固定（再現性確保）
+        seed_value = hash(session_id) % 2**32
+        random.seed(seed_value)
+        
+        # 2-4人目をシャッフル
+        shuffled_students = remaining_students.copy()
+        random.shuffle(shuffled_students)
+        
+        # trial 2,3,4 → shuffled index 0,1,2
+        trial_index = trial - 2
+        if trial_index < len(shuffled_students):
+            return shuffled_students[trial_index]
+    
+    return None
 
 
 def format_student_for_display(student_row: Dict[str, Any]) -> Dict[str, Any]:
@@ -293,7 +195,7 @@ def generate_bot_opinions_for_student() -> List[Dict[str, Any]]:
     decision_labels = ['不合格', '合格']  # 2択に簡素化
     bot_opinions = []
     
-    for bot_id in [1, 2]:
+    for bot_id in [1, 2, 3]:
         decision = random.choice([0, 1])
         weights = [random.randint(10, 40) for _ in range(5)]
         total = sum(weights)
@@ -316,8 +218,8 @@ def generate_participant_opinions(user_decision: str,
                                   trial: int,
                                   session_id: str) -> List[Dict[str, Any]]:
     """
-    参加者2名の意見（決定と重み）を決定的に生成する。
-    - 練習(trial==1): 決定はランダム
+    参加者3名の意見（決定と重み）を決定的に生成する。
+    - 練習(trial==1): 決定はランダム（2-2にならないよう調整）
     - 本番(trial>=2): 決定はユーザーの初回判断の反対
     - 重み: 10%刻み、合計100%（セッションIDとtrialから決定的な乱数シード）
     """
@@ -340,17 +242,43 @@ def generate_participant_opinions(user_decision: str,
                 remaining -= w
         return weights
 
-    def gen_decision() -> str:
+    def gen_decisions_for_trial() -> List[str]:
         if trial == 1:
-            return '合格' if rng.random() < 0.5 else '不合格'
-        # 本番はユーザーの初回判断の反対
-        return '不合格' if user_decision == '合格' else '合格'
+            # 練習: ランダムだが2-2にならないよう調整（ユーザー1名+参加者3名=4名）
+            # パターン: 3-1 または 1-3 になるよう調整
+            user_choice = user_decision
+            participant_choices = []
+            
+            # まず2名をランダムに決定
+            for _ in range(2):
+                participant_choices.append('合格' if rng.random() < 0.5 else '不合格')
+            
+            # 3名目は2-2を避けるよう調整
+            user_count = 1 if user_choice == '合格' else 0
+            participant_pass_count = sum(1 for d in participant_choices if d == '合格')
+            total_pass_count = user_count + participant_pass_count
+            
+            # 現在のカウントで最終的に2-2になるかチェック
+            if total_pass_count == 2:
+                # 2-2になってしまうので、3名目で調整
+                third_choice = '不合格' if user_choice == '合格' else '合格'
+            else:
+                # 2-2にならないので、3名目はランダム
+                third_choice = '合格' if rng.random() < 0.5 else '不合格'
+            
+            participant_choices.append(third_choice)
+            return participant_choices
+        else:
+            # 本番: 全員ユーザーの初回判断の反対
+            opposite = '不合格' if user_decision == '合格' else '合格'
+            return [opposite, opposite, opposite]
 
+    decisions = gen_decisions_for_trial()
     opinions: List[Dict[str, Any]] = []
-    for bot_id in range(2):
+    for bot_id in range(3):
         opinions.append({
             'bot_id': bot_id,
-            'decision': gen_decision(),
+            'decision': decisions[bot_id],
             'weights': gen_weights(),
         })
     return opinions

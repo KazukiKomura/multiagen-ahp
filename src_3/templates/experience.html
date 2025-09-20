@@ -137,6 +137,10 @@
             </div>
             <div class="step" data-step="2">
                 <span class="step-number">3</span>
+                <span class="step-label">AIチャット</span>
+            </div>
+            <div class="step" data-step="3">
+                <span class="step-number">4</span>
                 <span class="step-label">最終決定</span>
             </div>
         </div>
@@ -212,12 +216,53 @@
                     </div>
                 </div>
             </div>
-            <button class="btn btn-primary" onclick="nextPhase()">最終決定へ進む</button>
+            <button class="btn btn-primary" onclick="nextPhase()">AIチャットへ進む</button>
         </div>
 
-        <!-- フェーズ3: 最終決定 -->
+        <!-- フェーズ3: AIチャット -->
         <div class="phase-content" data-phase="2">
+            <h3>AIファシリテーターとの対話</h3>
+            <div class="split-view">
+                <div class="opinions-sidebar">
+                    <h4>意見の比較</h4>
+                    <div id="comparisonView">
+                        <!-- JavaScript で動的に表示 -->
+                    </div>
+                </div>
+                <div class="chat-area">
+                    <div class="chat-messages" id="chatMessages">
+                        <!-- AI初期メッセージは動的に読み込み -->
+                    </div>
+                    <div class="loading-indicator" id="loadingIndicator" style="display: none;">
+                        <div class="loading-spinner"></div>
+                        <div class="loading-text">AIが回答を考えています...</div>
+                    </div>
+                    <div class="chat-input-container">
+                        <input type="text" id="chatInput" placeholder="メッセージを入力してください..." maxlength="500">
+                        <button id="sendButton" class="btn btn-primary">送信</button>
+                    </div>
+                    <div class="chat-info">
+                        <p>会話回数: <span id="messageCount">0</span>（最低4回）</p>
+                        <button class="btn btn-secondary" id="finishChat" style="display: none;" onclick="nextPhase()">対話を終了して最終決定へ</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- フェーズ4: 最終決定 -->
+        <div class="phase-content" data-phase="3">
             <h3>最終決定</h3>
+            <div class="final-guide">
+                <div class="guide-title">このステップで行うこと</div>
+                <ul class="guide-list">
+                    <li>下の「初回の判断」を確認</li>
+                    <li>必要なら「最終判定」を変更</li>
+                    <li>重みを微調整（合計100%）</li>
+                    <li>変更理由（任意）と信頼度を入力</li>
+                    <li>「最終決定を確定する」をクリック</li>
+                </ul>
+                <div class="guide-note">提出後は取り消しできません。慎重にご確認ください。</div>
+            </div>
             <div class="final-decision-area">
                 <div class="decision-comparison">
                     <div class="initial-decision">
@@ -247,6 +292,7 @@
 
                     <div class="final-weights">
                         <h4>最終重要度設定</h4>
+                        <p class="hint-text">初回の重みを初期値として読み込み済みです。必要に応じて合計が100%になるよう微調整してください。</p>
                         <div class="weights-container">
                             {% set final_initial_weight = (100 / info.criteria|length)|round|int %}
                             {% for criterion in info.criteria %}
@@ -266,9 +312,9 @@
                             </div>
                             {% endfor %}
                         </div>
-                        <div class="total-weight">
-                            合計: <span id="final-total-weight">100</span>%
-                        </div>
+                            <div class="total-weight">
+                                合計: <span id="final-total-weight">100</span>%
+                            </div>
                     </div>
 
                     <div class="change-reasoning">
@@ -300,6 +346,28 @@
 {% block scripts %}
 <style>
 /* Loading indicator styles */
+/* Final decision guidance */
+.final-guide {
+    background: #f8f9ff;
+    border: 1px solid #e0e7ff;
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin: 8px 0 16px;
+}
+.final-guide .guide-title {
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 6px;
+}
+.final-guide .guide-list {
+    margin: 6px 0 8px 18px;
+}
+.final-guide .guide-list li { margin: 2px 0; }
+.final-guide .guide-note {
+    font-size: 12px;
+    color: #6b7280;
+}
+.hint-text { color: #6b7280; font-size: 13px; margin: 6px 0 10px; }
 .loading-indicator {
     display: flex;
     align-items: center;
@@ -374,6 +442,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentPhase = 0;
     let initialDecisionData = null;
     let botOpinions = [];
+    const criteriaOrder = {{ info.criteria | tojson }}; // 表示順序を固定
     let conversationCount = 0;
 
     // --- Chat message rendering helpers (newline + lightweight Markdown) ---
@@ -467,19 +536,41 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         
-        // 参加者1の生成
-        botOpinions.push({
-            bot_id: 0, // 参加者1
-            decision: getBotDecision(),
-            weights: generateRandomWeights(criteriaList)
-        });
+        // 参加者3名の意見を生成（練習では2-2を避ける）
+        const decisions = [];
         
-        // 参加者2の生成
-        botOpinions.push({
-            bot_id: 1, // 参加者2
-            decision: getBotDecision(),
-            weights: generateRandomWeights(criteriaList)
-        });
+        if (trial === 1) {
+            // 練習: 2名をランダムに決定
+            decisions.push(getBotDecision());
+            decisions.push(getBotDecision());
+            
+            // 3名目は2-2を避けるよう調整
+            const userChoice = userDecision;
+            const userCount = userChoice === '合格' ? 1 : 0;
+            const participantPassCount = decisions.filter(d => d === '合格').length;
+            const totalPassCount = userCount + participantPassCount;
+            
+            if (totalPassCount === 2) {
+                // 2-2になってしまうので、3名目で調整
+                decisions.push(userChoice === '合格' ? '不合格' : '合格');
+            } else {
+                // 2-2にならないので、3名目はランダム
+                decisions.push(getBotDecision());
+            }
+        } else {
+            // 本番: 全員ユーザーの反対
+            const opposite = userDecision === '合格' ? '不合格' : '合格';
+            decisions.push(opposite, opposite, opposite);
+        }
+        
+        // 参加者1-3の生成
+        for (let i = 0; i < 3; i++) {
+            botOpinions.push({
+                bot_id: i,
+                decision: decisions[i],
+                weights: generateRandomWeights(criteriaList)
+            });
+        }
         
         return botOpinions;
     }
@@ -537,9 +628,12 @@ document.addEventListener('DOMContentLoaded', function() {
         currentPhase = phaseIndex;
 
         if (phaseIndex === 2) {
+            // AIチャットフェーズ開始時に手続き説明を取得
+            initializeChat();
+        } else if (phaseIndex === 3) {
             // 最終決定フェーズの重要度スライダー設定
             setTimeout(() => {
-                const finalWeights = setupWeightSliders('[data-phase="2"]');
+                const finalWeights = setupWeightSliders('[data-phase="3"]');
                 // 初期値を設定
                 if (initialDecisionData) {
                     Object.entries(initialDecisionData.weights).forEach(([criterion, weight]) => {
@@ -559,12 +653,14 @@ document.addEventListener('DOMContentLoaded', function() {
                         console.warn('最終判断ラジオの初期化に失敗:', e);
                     }
                 }
+                // 初回の判断サマリーを更新
+                try { updateInitialDecisionSummary(); } catch (e) { console.warn('初回判断サマリー更新失敗', e); }
             }, 100);
         }
     }
 
     window.nextPhase = function() {
-        if (currentPhase < 2) {
+        if (currentPhase < 3) {
             showPhase(currentPhase + 1);
         }
     };
@@ -636,13 +732,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
         initialDecisionData = data;
         
-        // 動的にボット意見を生成
-        botOpinions = generateBotOpinions(data.decision, data.weights, criteria);
-        console.log('ユーザー決定:', data.decision);
-        console.log('動的生成されたボット意見:', botOpinions);
-        console.log('参加者1の決定:', botOpinions[0]?.decision);
-        console.log('参加者2の決定:', botOpinions[1]?.decision);
-
         console.log('意思決定データ送信:', data);
 
         fetch('/save_decision', {
@@ -659,7 +748,12 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(result => {
             console.log('サーバー応答:', result);
             if (result.success) {
-                // botOpinionsは既に生成済みなので、直接次のフェーズへ進む
+                // サーバで確定した参加者意見を採用
+                if (Array.isArray(result.participant_opinions)) {
+                    botOpinions = result.participant_opinions;
+                }
+                console.log('確定された参加者意見:', botOpinions);
+                // 直接次のフェーズへ進む
                 showPhase1Content();
                 nextPhase();
             } else if (result.error) {
@@ -686,6 +780,17 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="decision-badge ${myDecisionClass}">
                 ${myDecisionText}
             </div>
+            <div class="weight-bars">
+                ${Object.entries(initialDecisionData.weights).map(([criterion, weight]) => `
+                    <div class="weight-bar-small">
+                        <span class="criterion">${criterion}:</span>
+                        <div class="bar">
+                            <div class="fill" style="width: ${weight}%"></div>
+                        </div>
+                        <span class="value">${weight}%</span>
+                    </div>
+                `).join('')}
+            </div>
         `;
 
         // 他の参加者の意見表示
@@ -701,11 +806,27 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="decision-badge ${decisionClass}">
                     ${decisionText}
                 </div>
+                <div class="weight-bars">
+                    ${criteriaOrder.map((criterion) => {
+                        const weight = opinion.weights[criterion] ?? 0;
+                        const roundedWeight = Math.round(weight / 10) * 10;
+                        return `
+                        <div class="weight-bar-small">
+                            <span class="criterion">${criterion}:</span>
+                            <div class="bar">
+                                <div class="fill" style="width: ${roundedWeight}%"></div>
+                            </div>
+                            <span class="value">${roundedWeight}%</span>
+                        </div>
+                        `;
+                    }).join('')}
+                </div>
             </div>
             `;
         }).join('');
 
-        // チャットフェーズ削除に伴い比較ビュー更新は不要
+        // フェーズ3の比較表示も更新
+        updateComparisonView();
     }
 
     function updateComparisonView() {
@@ -722,7 +843,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     ${myDecisionText}
                 </div>
                 <div class="weight-bars-mini">
-                    ${Object.entries(initialDecisionData.weights).map(([criterion, weight]) => `
+                    ${criteriaOrder.map((criterion) => {
+                        const weight = initialDecisionData.weights[criterion] ?? 0;
+                        return `
                         <div class="weight-bar-mini">
                             <span class="criterion-mini">${criterion}:</span>
                             <div class="bar-mini">
@@ -730,7 +853,8 @@ document.addEventListener('DOMContentLoaded', function() {
                             </div>
                             <span class="value-mini">${weight}%</span>
                         </div>
-                    `).join('')}
+                        `;
+                    }).join('')}
                 </div>
             </div>
             ${botOpinions.map(opinion => {
@@ -743,7 +867,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         ${decisionText}
                     </div>
                     <div class="weight-bars-mini">
-                        ${Object.entries(opinion.weights).map(([criterion, weight]) => {
+                        ${criteriaOrder.map((criterion) => {
+                            const weight = opinion.weights[criterion] ?? 0;
                             const roundedWeight = Math.round(weight / 10) * 10;
                             return `
                             <div class="weight-bar-mini">
@@ -983,7 +1108,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // フェーズ変更時の処理
     document.addEventListener('phaseChange', function(e) {
-        if (e.detail.phase === 2) {
+        if (e.detail.phase === 3) {
             updateInitialDecisionSummary();
         }
     });

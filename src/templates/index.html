@@ -1,36 +1,257 @@
-{% extends "base.html" %}
+{% extends "base.html" %} {% block title %}実験開始 - 意思決定実験システム{%
+endblock %} {% block content %}
 
-{% block title %}実験開始 - 意思決定実験システム{% endblock %}
+<style>
+    .experiment-details {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 24px;
+        margin: 20px 0;
+        max-width: 100%;
+        box-sizing: border-box;
+        overflow: hidden;
+    }
+    .detail-section {
+        margin-bottom: 20px;
+    }
+    .detail-section h4 {
+        color: #2d3748;
+        margin-bottom: 12px;
+        font-size: 18px;
+    }
+    .detail-section h5 {
+        color: #4a5568;
+        margin: 16px 0 8px 0;
+        font-size: 16px;
+    }
+    .detail-section p,
+    .detail-section li {
+        color: #4a5568;
+        line-height: 1.6;
+        margin-bottom: 8px;
+    }
+    .time-estimate {
+        background: #edf2f7;
+        padding: 12px;
+        border-radius: 8px;
+        margin: 16px 0;
+    }
+    .important-note {
+        background: #fed7d7;
+        border: 1px solid #e53e3e;
+        border-left: 4px solid #e53e3e;
+        padding: 16px;
+        border-radius: 8px;
+        margin: 16px 0;
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+    .consent-section {
+        background: #fff;
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 24px;
+        margin: 24px 0;
+    }
+    .consent-checkbox {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        margin: 16px 0;
+        padding: 16px;
+        background: #f7fafc;
+        border-radius: 8px;
+    }
+    .consent-checkbox input[type="checkbox"] {
+        margin-top: 4px;
+        transform: scale(1.2);
+    }
+    .consent-checkbox label {
+        font-weight: 500;
+        color: #2d3748;
+        cursor: pointer;
+        line-height: 1.5;
+    }
+    .start-button-container {
+        text-align: center;
+        margin: 32px 0;
+    }
+    .btn-disabled {
+        background-color: #a0aec0 !important;
+        cursor: not-allowed !important;
+        opacity: 0.6;
+    }
+    .condition-card {
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 24px;
+        margin: 20px 0;
+        max-width: 100%;
+        box-sizing: border-box;
+    }
 
-{% block content %}
+    /* レスポンシブ対応 */
+    @media (max-width: 768px) {
+        .experiment-details,
+        .consent-section,
+        .condition-card {
+            margin: 16px 0;
+            padding: 16px;
+        }
+        .important-note {
+            margin: 12px 0;
+            padding: 12px;
+        }
+        .detail-section p,
+        .detail-section li {
+            font-size: 14px;
+        }
+    }
+</style>
+
 <div class="welcome-section">
-    <h2>意思決定実験へようこそ</h2>
-    <p>この実験では、AIファシリテーターとの対話を通じてグループでの意思決定プロセスについて研究します。</p>
-    <p>下のボタンから実験を開始してください。</p>
+    <h2>実験へようこそ</h2>
+    <p>この実験では、グループでの意思決定プロセスについて研究します。</p>
 </div>
 
-<div class="condition-selection">
-    <div class="condition-card">
-        <h3>AI-ファシリテーター条件</h3>
-        <p>AIファシリテーターとの対話を通じて意思決定を行います</p>
-        <a href="/start/ai-facilitator" class="btn btn-primary">実験を開始</a>
+<div class="experiment-details">
+    <div class="detail-section">
+        <h4>📋 実験の概要</h4>
+        <p>
+            この実験では、採用に関しての重要な課題について話し合い、
+            グループとして最終的な意思決定を行います。
+        </p>
+    </div>
+
+    <div class="detail-section">
+        <h4>⏱️ 実験の流れと所要時間</h4>
+        <div class="time-estimate">
+            <strong>全体所要時間：約30-45分</strong>
+        </div>
+
+        <ol>
+            <li>
+                <strong>事前質問紙</strong>（初回のみ、約5分）
+                <ul>
+                    <li>基本情報とAI利用経験について</li>
+                </ul>
+            </li>
+            <li>
+                <strong>練習セッション</strong>（約5分）
+                <ul>
+                    <li>本番に近い形でシステムの操作方法を学習</li>
+                    <li>簡単な課題で練習</li>
+                </ul>
+            </li>
+            <li>
+                <strong>本番セッション × 3回</strong>（各回約10-12分）
+                <ul>
+                    <li>個人での意思決定（課題内容の理解と初期判断）</li>
+                    <li>他の参加者の意見確認</li>
+                    <li>グループでの議論（約5分間）</li>
+                    <li>最終的な個人判断の見直し</li>
+                    <li>グループ全体での合意形成</li>
+                </ul>
+            </li>
+            <li>
+                <strong>事後質問紙</strong>（各セッション後、約2-3分）
+                <ul>
+                    <li>そのセッションでの体験についての感想</li>
+                </ul>
+            </li>
+        </ol>
+    </div>
+
+    <div class="detail-section">
+        <h4>💭 取り扱う課題について</h4>
+        <p>実際の自治体で検討されるような政策課題を扱います。例：</p>
+        <ul>
+            <li>公共施設の建設・改修に関する判断</li>
+            <li>地域活性化事業の優先順位決定</li>
+            <li>予算配分に関する合意形成</li>
+        </ul>
+        <p>
+            各課題には複数の評価軸（コスト、効果、実現可能性など）があり、
+            これらを総合的に判断していただきます。
+        </p>
+    </div>
+
+    <div class="important-note">
+        <strong>⚠️ 重要な注意事項</strong>
+        <ul style="margin-top: 8px">
+            <li>
+                <strong
+                    >実験中は途中で中断せず、最後まで完了してください</strong
+                >
+            </li>
+            <li>
+                <strong>約45-60分の時間を確保してから開始してください</strong>
+            </li>
+            <li>
+                実験は一度開始すると、データの整合性のため中断や再開はできません
+            </li>
+            <li>他の参加者は実在しない模擬的な設定です</li>
+            <li>
+                正解のない課題ですので、あなたの率直な判断をお聞かせください
+            </li>
+            <li>実験データは研究目的でのみ使用され、個人は特定されません</li>
+        </ul>
     </div>
 </div>
 
-<div class="experiment-info">
-    <h4>実験の流れ</h4>
-    <ol>
-        <li>事前質問紙（初回のみ）</li>
-        <li>体験フェーズ（統合画面で以下を実施）
-            <ul>
-                <li>個人意思決定（可否判断 + 重み付け）</li>
-                <li>他の参加者意見の確認</li>
-                <li>AIファシリテーターとの対話</li>
-                <li>最終意思決定</li>
-            </ul>
-        </li>
-        <li>事後質問紙</li>
-    </ol>
-    <p><strong>体験フェーズと事後質問紙を4回繰り返します</strong></p>
+<div class="consent-section">
+    <h3>参加同意の確認</h3>
+    <p>
+        実験を開始する前に、以下の内容をご確認いただき、
+        同意いただける場合はチェックボックスにチェックを入れてください。
+    </p>
+
+    <div class="consent-checkbox">
+        <input type="checkbox" id="consent-all" />
+        <label for="consent-all">
+            上記の実験内容を理解し、参加に同意します
+        </label>
+    </div>
 </div>
+
+<div class="start-button-container">
+    <div class="condition-card">
+        <h3>🚀 実験開始</h3>
+        <p>
+            上記の内容を確認し、すべてに同意いただけましたら実験を開始してください
+        </p>
+        <button id="start-button" class="btn btn-primary btn-disabled" disabled>
+            実験を開始
+        </button>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const consentCheckbox = document.getElementById("consent-all");
+        const startButton = document.getElementById("start-button");
+
+        function updateButtonState() {
+            if (consentCheckbox.checked) {
+                startButton.disabled = false;
+                startButton.classList.remove("btn-disabled");
+                startButton.onclick = function () {
+                    window.location.href = "/start/ai-facilitator";
+                };
+            } else {
+                startButton.disabled = true;
+                startButton.classList.add("btn-disabled");
+                startButton.onclick = null;
+            }
+        }
+
+        consentCheckbox.addEventListener("change", updateButtonState);
+
+        // 初期状態の設定
+        updateButtonState();
+    });
+</script>
+
 {% endblock %}

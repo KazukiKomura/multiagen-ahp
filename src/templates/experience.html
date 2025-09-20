@@ -536,19 +536,41 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         
-        // 参加者1の生成
-        botOpinions.push({
-            bot_id: 0, // 参加者1
-            decision: getBotDecision(),
-            weights: generateRandomWeights(criteriaList)
-        });
+        // 参加者3名の意見を生成（練習では2-2を避ける）
+        const decisions = [];
         
-        // 参加者2の生成
-        botOpinions.push({
-            bot_id: 1, // 参加者2
-            decision: getBotDecision(),
-            weights: generateRandomWeights(criteriaList)
-        });
+        if (trial === 1) {
+            // 練習: 2名をランダムに決定
+            decisions.push(getBotDecision());
+            decisions.push(getBotDecision());
+            
+            // 3名目は2-2を避けるよう調整
+            const userChoice = userDecision;
+            const userCount = userChoice === '合格' ? 1 : 0;
+            const participantPassCount = decisions.filter(d => d === '合格').length;
+            const totalPassCount = userCount + participantPassCount;
+            
+            if (totalPassCount === 2) {
+                // 2-2になってしまうので、3名目で調整
+                decisions.push(userChoice === '合格' ? '不合格' : '合格');
+            } else {
+                // 2-2にならないので、3名目はランダム
+                decisions.push(getBotDecision());
+            }
+        } else {
+            // 本番: 全員ユーザーの反対
+            const opposite = userDecision === '合格' ? '不合格' : '合格';
+            decisions.push(opposite, opposite, opposite);
+        }
+        
+        // 参加者1-3の生成
+        for (let i = 0; i < 3; i++) {
+            botOpinions.push({
+                bot_id: i,
+                decision: decisions[i],
+                weights: generateRandomWeights(criteriaList)
+            });
+        }
         
         return botOpinions;
     }
@@ -587,6 +609,11 @@ document.addEventListener('DOMContentLoaded', function() {
         updateWeights();
         return { weightSliders, updateWeights };
     }
+
+    // main.jsの重複する重み計算を無効化
+    window.updateWeightTotal = function() {
+        // experience.html内の重み管理ロジックを使用するため、main.jsの関数を無効化
+    };
 
     // 初期重要度スライダー設定
     const initialWeights = setupWeightSliders('[data-phase="0"]');

@@ -293,7 +293,7 @@ def generate_bot_opinions_for_student() -> List[Dict[str, Any]]:
     decision_labels = ['不合格', '合格']  # 2択に簡素化
     bot_opinions = []
     
-    for bot_id in [1, 2]:
+    for bot_id in [1, 2, 3]:
         decision = random.choice([0, 1])
         weights = [random.randint(10, 40) for _ in range(5)]
         total = sum(weights)
@@ -316,8 +316,8 @@ def generate_participant_opinions(user_decision: str,
                                   trial: int,
                                   session_id: str) -> List[Dict[str, Any]]:
     """
-    参加者2名の意見（決定と重み）を決定的に生成する。
-    - 練習(trial==1): 決定はランダム
+    参加者3名の意見（決定と重み）を決定的に生成する。
+    - 練習(trial==1): 決定はランダム（2-2にならないよう調整）
     - 本番(trial>=2): 決定はユーザーの初回判断の反対
     - 重み: 10%刻み、合計100%（セッションIDとtrialから決定的な乱数シード）
     """
@@ -340,17 +340,43 @@ def generate_participant_opinions(user_decision: str,
                 remaining -= w
         return weights
 
-    def gen_decision() -> str:
+    def gen_decisions_for_trial() -> List[str]:
         if trial == 1:
-            return '合格' if rng.random() < 0.5 else '不合格'
-        # 本番はユーザーの初回判断の反対
-        return '不合格' if user_decision == '合格' else '合格'
+            # 練習: ランダムだが2-2にならないよう調整（ユーザー1名+参加者3名=4名）
+            # パターン: 3-1 または 1-3 になるよう調整
+            user_choice = user_decision
+            participant_choices = []
+            
+            # まず2名をランダムに決定
+            for _ in range(2):
+                participant_choices.append('合格' if rng.random() < 0.5 else '不合格')
+            
+            # 3名目は2-2を避けるよう調整
+            user_count = 1 if user_choice == '合格' else 0
+            participant_pass_count = sum(1 for d in participant_choices if d == '合格')
+            total_pass_count = user_count + participant_pass_count
+            
+            # 現在のカウントで最終的に2-2になるかチェック
+            if total_pass_count == 2:
+                # 2-2になってしまうので、3名目で調整
+                third_choice = '不合格' if user_choice == '合格' else '合格'
+            else:
+                # 2-2にならないので、3名目はランダム
+                third_choice = '合格' if rng.random() < 0.5 else '不合格'
+            
+            participant_choices.append(third_choice)
+            return participant_choices
+        else:
+            # 本番: 全員ユーザーの初回判断の反対
+            opposite = '不合格' if user_decision == '合格' else '合格'
+            return [opposite, opposite, opposite]
 
+    decisions = gen_decisions_for_trial()
     opinions: List[Dict[str, Any]] = []
-    for bot_id in range(2):
+    for bot_id in range(3):
         opinions.append({
             'bot_id': bot_id,
-            'decision': gen_decision(),
+            'decision': decisions[bot_id],
             'weights': gen_weights(),
         })
     return opinions

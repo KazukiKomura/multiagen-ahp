@@ -1,19 +1,16 @@
-{% extends "base.html" %}
-
-{% block title %}個人意思決定 - 意思決定実験システム{% endblock %}
-
-{% block content %}
+{% extends "base.html" %} {% block title %}個人意思決定 - 意思決定実験システム{%
+endblock %} {% block content %}
 <div class="decision-section">
     <div class="compact-trial-header">
         <h2>{{ info.title }}</h2>
         <span class="trial-badge">トライアル {{ trial }}</span>
     </div>
-    
+
     <div class="decision-info-compact">
         <div class="scenario-brief">
             <p>{{ info.description }}</p>
         </div>
-        
+
         <div class="criteria-summary">
             {% for criterion, detail in info.details.items() %}
             <div class="criterion-compact">
@@ -29,12 +26,12 @@
             <h4>1. あなたの判断をお選びください</h4>
             <div class="radio-group">
                 <label>
-                    <input type="radio" name="decision" value="賛成" required>
+                    <input type="radio" name="decision" value="賛成" required />
                     <span class="radio-custom"></span>
                     賛成
                 </label>
                 <label>
-                    <input type="radio" name="decision" value="反対" required>
+                    <input type="radio" name="decision" value="反対" required />
                     <span class="radio-custom"></span>
                     反対
                 </label>
@@ -44,19 +41,26 @@
         <div class="weights-section-compact">
             <h4>2. 重要度設定（合計100%）</h4>
             <div class="weights-grid">
-                {% set decision_initial_weight = (100 / info.criteria|length)|round|int %}
-                {% for criterion in info.criteria %}
+                {% set decision_initial_weight = (100 /
+                info.criteria|length)|round|int %} {% for criterion in
+                info.criteria %}
                 <div class="weight-item-compact">
                     <label class="weight-label">{{ criterion }}</label>
-                    <input type="range" 
-                           id="{{ criterion }}" 
-                           name="{{ criterion }}" 
-                           min="0" 
-                           max="100" 
-                           value="{{ decision_initial_weight }}" 
-                           step="10"
-                           class="weight-slider-compact">
-                    <span class="weight-value-compact" id="{{ criterion }}-value">{{ decision_initial_weight }}</span>%
+                    <input
+                        type="range"
+                        id="{{ criterion }}"
+                        name="{{ criterion }}"
+                        min="0"
+                        max="100"
+                        value="{{ decision_initial_weight }}"
+                        step="10"
+                        class="weight-slider-compact"
+                    />
+                    <span
+                        class="weight-value-compact"
+                        id="{{ criterion }}-value"
+                        >{{ decision_initial_weight }}</span
+                    >%
                 </div>
                 {% endfor %}
             </div>
@@ -68,111 +72,109 @@
         <button type="submit" class="btn btn-primary">決定を確定する</button>
     </form>
 </div>
-{% endblock %}
-
-{% block scripts %}
+{% endblock %} {% block scripts %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const weightSliders = document.querySelectorAll('.weight-slider-compact');
-    const totalWeightDisplay = document.getElementById('total-weight');
-    
-    function updateWeights() {
-        let total = 0;
-        weightSliders.forEach(slider => {
-            const value = parseInt(slider.value);
-            total += value;
-            document.getElementById(slider.id + '-value').textContent = value;
-        });
-        
-        totalWeightDisplay.textContent = total;
-        totalWeightDisplay.className = total === 100 ? 'correct' : 'incorrect';
-    }
+    document.addEventListener('DOMContentLoaded', function() {
+        const weightSliders = document.querySelectorAll('.weight-slider-compact');
+        const totalWeightDisplay = document.getElementById('total-weight');
 
-    weightSliders.forEach(slider => {
-        slider.addEventListener('input', updateWeights);
-    });
-
-    // 自動調整機能
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter' && e.ctrlKey) {
-            autoAdjustWeights();
-        }
-    });
-
-    function autoAdjustWeights() {
-        const values = Array.from(weightSliders).map(s => parseInt(s.value));
-        const total = values.reduce((a, b) => a + b, 0);
-        
-        if (total !== 100) {
-            const adjustment = (100 - total) / weightSliders.length;
+        function updateWeights() {
+            let total = 0;
             weightSliders.forEach(slider => {
-                const newValue = Math.max(0, Math.min(100, parseInt(slider.value) + adjustment));
-                slider.value = Math.round(newValue);
+                const value = parseInt(slider.value);
+                total += value;
+                document.getElementById(slider.id + '-value').textContent = value;
             });
-            updateWeights();
-        }
-    }
 
-    // フォーム送信
-    document.getElementById('decisionForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        // 判定の選択をチェック
-        const decisionSelected = document.querySelector('input[name="decision"]:checked');
-        if (!decisionSelected) {
-            alert('賛成または反対を選択してください。');
-            return;
+            totalWeightDisplay.textContent = total;
+            totalWeightDisplay.className = total === 100 ? 'correct' : 'incorrect';
         }
-        
-        const total = parseInt(totalWeightDisplay.textContent);
-        if (total !== 100) {
-            alert('重要度の合計が100%になるよう調整してください。現在の合計: ' + total + '%');
-            return;
+
+        weightSliders.forEach(slider => {
+            slider.addEventListener('input', updateWeights);
+        });
+
+        // 自動調整機能
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && e.ctrlKey) {
+                autoAdjustWeights();
+            }
+        });
+
+        function autoAdjustWeights() {
+            const values = Array.from(weightSliders).map(s => parseInt(s.value));
+            const total = values.reduce((a, b) => a + b, 0);
+
+            if (total !== 100) {
+                const adjustment = (100 - total) / weightSliders.length;
+                weightSliders.forEach(slider => {
+                    const newValue = Math.max(0, Math.min(100, parseInt(slider.value) + adjustment));
+                    slider.value = Math.round(newValue);
+                });
+                updateWeights();
+            }
         }
-        
-        // 全て同じ重みかチェック
-        const weights = Array.from(weightSliders).map(slider => parseInt(slider.value));
-        const allSame = weights.every(w => w === weights[0]);
-        
-        if (allSame) {
-            const confirmed = confirm('全ての基準が同じ重みになっています。このまま進んでもよろしいですか？');
-            if (!confirmed) {
+
+        // フォーム送信
+        document.getElementById('decisionForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            // 判定の選択をチェック
+            const decisionSelected = document.querySelector('input[name="decision"]:checked');
+            if (!decisionSelected) {
+                alert('賛成または反対を選択してください。');
                 return;
             }
-        }
-        
-        const formData = new FormData(this);
-        const data = {
-            trial: {{ trial }},
-            decision: formData.get('decision'),
-            weights: {}
-        };
-        
-        {% for criterion in info.criteria %}
-        data.weights['{{ criterion }}'] = parseInt(formData.get('{{ criterion }}'));
-        {% endfor %}
 
-        fetch('/save_decision', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(data)
-        })
-        .then(response => response.json())
-        .then(result => {
-            if (result.next) {
-                window.location.href = result.next;
+            const total = parseInt(totalWeightDisplay.textContent);
+            if (total !== 100) {
+                alert('重要度の合計が100%になるよう調整してください。現在の合計: ' + total + '%');
+                return;
             }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('エラーが発生しました。');
-        });
-    });
 
-    // 初期化
-    updateWeights();
-});
+            // 全て同じ重みかチェック
+            const weights = Array.from(weightSliders).map(slider => parseInt(slider.value));
+            const allSame = weights.every(w => w === weights[0]);
+
+            if (allSame) {
+                const confirmed = confirm('全ての基準が同じ重みになっています。このまま進んでもよろしいですか？');
+                if (!confirmed) {
+                    return;
+                }
+            }
+
+            const formData = new FormData(this);
+            const data = {
+                trial: {{ trial }},
+                decision: formData.get('decision'),
+                weights: {}
+            };
+
+            {% for criterion in info.criteria %}
+            data.weights['{{ criterion }}'] = parseInt(formData.get('{{ criterion }}'));
+            {% endfor %}
+
+            fetch('/save_decision', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.next) {
+                    window.location.href = result.next;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('エラーが発生しました。');
+            });
+        });
+
+        // 初期化
+        updateWeights();
+    });
 </script>
 {% endblock %}

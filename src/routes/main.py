@@ -225,8 +225,8 @@ def save_decision():
                     return keys == set(criteria) and all(isinstance(w[k], (int, float)) for k in criteria)
                 except Exception:
                     return False
-            if isinstance(incoming, list) and len(incoming) >= 2 and _is_valid(incoming[0]) and _is_valid(incoming[1]):
-                opinions = incoming[:2]
+            if isinstance(incoming, list) and len(incoming) >= 3 and all(_is_valid(incoming[i]) for i in range(3)):
+                opinions = incoming[:3]
             else:
                 opinions = generate_participant_opinions(user_initial, criteria, trial, session_id)
 
@@ -381,7 +381,7 @@ def complete():
 def final_outcome():
     """Announce the final decision (majority vote) before post-questionnaire.
 
-    Majority is calculated among: user's final decision and two participant opinions.
+    Majority is calculated among: user's final decision and three participant opinions.
     For main sessions (trial>=2), participants' decisions are set to be the opposite
     of the user's initial decision (as used in the comparison view).
     """
@@ -409,13 +409,15 @@ def final_outcome():
     # 1) セッションに固定済み（save_decision時）のものがあればそれを使用
     # 2) なければ「初回判断の反対」を採用
     part_decisions = session.get('participant_decisions')
-    if isinstance(part_decisions, list) and len(part_decisions) >= 2:
+    if isinstance(part_decisions, list) and len(part_decisions) >= 3:
         votes.append({'who': '参加者 1', 'decision': part_decisions[0]})
         votes.append({'who': '参加者 2', 'decision': part_decisions[1]})
+        votes.append({'who': '参加者 3', 'decision': part_decisions[2]})
     elif user_initial:
         opposite = '合格' if user_initial == '不合格' else '不合格'
         votes.append({'who': '参加者 1', 'decision': opposite})
         votes.append({'who': '参加者 2', 'decision': opposite})
+        votes.append({'who': '参加者 3', 'decision': opposite})
 
     # 多数決の計算
     counts = {'合格': 0, '不合格': 0}
