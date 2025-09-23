@@ -171,8 +171,9 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🤖 AIチャット機能テスト</h1>
-            <p>論理エンジン統合後のAIファシリテーター機能をテストします</p>
+            <h1>🤖 AIチャット機能テスト（2本立てランキング型サリエンス）</h1>
+            <p>新しい価値順位アルゴリズムによる議論分析をテストします</p>
+            <small>価値観の類似度による群分け → 各群からTop-1論点抽出 → 2本立て合意形成支援</small>
         </div>
 
         <div class="test-setup">
@@ -187,22 +188,22 @@
                 </div>
                 <div class="setup-item">
                     <label>学業成績重視度(%):</label>
-                    <input type="number" id="academicWeight" value="40" min="0" max="100">
+                    <input type="number" id="academicWeight" value="30" min="0" max="100">
                 </div>
                 <div class="setup-item">
-                    <label>試験スコア重視度(%):</label>
-                    <input type="number" id="testWeight" value="20" min="0" max="100">
+                    <label>基礎能力テスト重視度(%):</label>
+                    <input type="number" id="testWeight" value="25" min="0" max="100">
                 </div>
                 <div class="setup-item">
-                    <label>研究能力重視度(%):</label>
+                    <label>実践経験重視度(%):</label>
                     <input type="number" id="researchWeight" value="20" min="0" max="100">
                 </div>
                 <div class="setup-item">
-                    <label>推薦状重視度(%):</label>
-                    <input type="number" id="recWeight" value="10" min="0" max="100">
+                    <label>推薦・評価重視度(%):</label>
+                    <input type="number" id="recWeight" value="15" min="0" max="100">
                 </div>
                 <div class="setup-item">
-                    <label>多様性重視度(%):</label>
+                    <label>学歴・所属重視度(%):</label>
                     <input type="number" id="diversityWeight" value="10" min="0" max="100">
                 </div>
             </div>
@@ -221,19 +222,19 @@
                     <input type="number" id="p1Academic" value="15" min="0" max="100">
                 </div>
                 <div class="setup-item">
-                    <label>試験スコア(%):</label>
+                    <label>基礎能力テスト(%):</label>
                     <input type="number" id="p1Test" value="10" min="0" max="100">
                 </div>
                 <div class="setup-item">
-                    <label>研究能力(%):</label>
+                    <label>実践経験(%):</label>
                     <input type="number" id="p1Research" value="30" min="0" max="100">
                 </div>
                 <div class="setup-item">
-                    <label>推薦状(%):</label>
+                    <label>推薦・評価(%):</label>
                     <input type="number" id="p1Rec" value="25" min="0" max="100">
                 </div>
                 <div class="setup-item">
-                    <label>多様性(%):</label>
+                    <label>学歴・所属(%):</label>
                     <input type="number" id="p1Diversity" value="20" min="0" max="100">
                 </div>
             </div>
@@ -251,20 +252,50 @@
                     <input type="number" id="p2Academic" value="35" min="0" max="100">
                 </div>
                 <div class="setup-item">
-                    <label>試験スコア(%):</label>
+                    <label>基礎能力テスト(%):</label>
                     <input type="number" id="p2Test" value="25" min="0" max="100">
                 </div>
                 <div class="setup-item">
-                    <label>研究能力(%):</label>
+                    <label>実践経験(%):</label>
                     <input type="number" id="p2Research" value="15" min="0" max="100">
                 </div>
                 <div class="setup-item">
-                    <label>推薦状(%):</label>
+                    <label>推薦・評価(%):</label>
                     <input type="number" id="p2Rec" value="15" min="0" max="100">
                 </div>
                 <div class="setup-item">
-                    <label>多様性(%):</label>
+                    <label>学歴・所属(%):</label>
                     <input type="number" id="p2Diversity" value="10" min="0" max="100">
+                </div>
+            </div>
+            <h3>参加者 3 設定</h3>
+            <div class="setup-grid">
+                <div class="setup-item">
+                    <label>参加者3 判断:</label>
+                    <select id="p3Decision">
+                        <option value="一次通過" selected>一次通過</option>
+                        <option value="見送り">見送り</option>
+                    </select>
+                </div>
+                <div class="setup-item">
+                    <label>学業成績(%):</label>
+                    <input type="number" id="p3Academic" value="20" min="0" max="100">
+                </div>
+                <div class="setup-item">
+                    <label>基礎能力テスト(%):</label>
+                    <input type="number" id="p3Test" value="40" min="0" max="100">
+                </div>
+                <div class="setup-item">
+                    <label>実践経験(%):</label>
+                    <input type="number" id="p3Research" value="10" min="0" max="100">
+                </div>
+                <div class="setup-item">
+                    <label>推薦・評価(%):</label>
+                    <input type="number" id="p3Rec" value="20" min="0" max="100">
+                </div>
+                <div class="setup-item">
+                    <label>学歴・所属(%):</label>
+                    <input type="number" id="p3Diversity" value="10" min="0" max="100">
                 </div>
             </div>
             <div class="btn-group">
@@ -297,8 +328,9 @@
         </div>
 
         <div class="debug-panel" id="debugPanel" style="display: none;">
-            <h4>デバッグ情報</h4>
-            <div class="debug-content" id="debugContent">デバッグ情報はここに表示されます</div>
+            <h4>🔬 アルゴリズム分析結果</h4>
+            <div class="debug-content" id="debugContent">新アルゴリズムの分析結果はここに表示されます</div>
+            <div class="algorithm-info" id="algorithmInfo" style="margin-top: 10px; padding: 10px; background: #e3f2fd; border-radius: 4px;"></div>
         </div>
     </div>
 
@@ -320,7 +352,36 @@
 
         function updateDebug(data) {
             const debugContent = document.getElementById('debugContent');
+            const algorithmInfo = document.getElementById('algorithmInfo');
+            
             debugContent.textContent = JSON.stringify(data, null, 2);
+            
+            // 新アルゴリズムの詳細分析結果を表示
+            if (data && data.success && data.message) {
+                // LLM応答に含まれる可能性のある分析情報をパース
+                algorithmInfo.innerHTML = `
+                    <strong>📊 分析概要:</strong><br>
+                    ターン: ${data.turn || 'N/A'}<br>
+                    応答サイズ: ${data.message ? data.message.length : 0} 文字<br>
+                    <small style="color: #666;">
+                        新アルゴリズムでは価値順位距離、群分け、サリエンススコア、2本立て論点抽出が実行されています。
+                    </small>
+                `;
+            } else if (data && data.step) {
+                // 初期化段階の情報
+                algorithmInfo.innerHTML = `
+                    <strong>🔧 ${data.step}:</strong><br>
+                    データ準備完了: ${data.data ? '✅' : '❌'}<br>
+                    <small style="color: #666;">
+                        参加者意見とユーザー重み配分が設定され、新アルゴリズムが利用可能な状態です。
+                    </small>
+                `;
+            } else {
+                algorithmInfo.innerHTML = `
+                    <strong>ℹ️ 待機中:</strong><br>
+                    アルゴリズム分析結果は議論開始後に表示されます。
+                `;
+            }
         }
 
         function toggleDebug() {
@@ -356,10 +417,10 @@
         function getWeights() {
             return {
                 '学業成績': parseInt(document.getElementById('academicWeight').value),
-                '試験スコア': parseInt(document.getElementById('testWeight').value),
-                '研究能力': parseInt(document.getElementById('researchWeight').value),
-                '推薦状': parseInt(document.getElementById('recWeight').value),
-                '多様性': parseInt(document.getElementById('diversityWeight').value)
+                '基礎能力テスト': parseInt(document.getElementById('testWeight').value),
+                '実践経験': parseInt(document.getElementById('researchWeight').value),
+                '推薦・評価': parseInt(document.getElementById('recWeight').value),
+                '志望動機・フィット': parseInt(document.getElementById('diversityWeight').value)
             };
         }
 
@@ -368,10 +429,10 @@
                 decision: document.getElementById('p1Decision').value,
                 weights: {
                     '学業成績': parseInt(document.getElementById('p1Academic').value),
-                    '試験スコア': parseInt(document.getElementById('p1Test').value),
-                    '研究能力': parseInt(document.getElementById('p1Research').value),
-                    '推薦状': parseInt(document.getElementById('p1Rec').value),
-                    '多様性': parseInt(document.getElementById('p1Diversity').value)
+                    '基礎能力テスト': parseInt(document.getElementById('p1Test').value),
+                    '実践経験': parseInt(document.getElementById('p1Research').value),
+                    '推薦・評価': parseInt(document.getElementById('p1Rec').value),
+                    '志望動機・フィット': parseInt(document.getElementById('p1Diversity').value)
                 },
                 bot_id: 0
             };
@@ -379,14 +440,25 @@
                 decision: document.getElementById('p2Decision').value,
                 weights: {
                     '学業成績': parseInt(document.getElementById('p2Academic').value),
-                    '試験スコア': parseInt(document.getElementById('p2Test').value),
-                    '研究能力': parseInt(document.getElementById('p2Research').value),
-                    '推薦状': parseInt(document.getElementById('p2Rec').value),
-                    '多様性': parseInt(document.getElementById('p2Diversity').value)
+                    '基礎能力テスト': parseInt(document.getElementById('p2Test').value),
+                    '実践経験': parseInt(document.getElementById('p2Research').value),
+                    '推薦・評価': parseInt(document.getElementById('p2Rec').value),
+                    '志望動機・フィット': parseInt(document.getElementById('p2Diversity').value)
                 },
                 bot_id: 1
             };
-            return [p1, p2];
+            const p3 = {
+                decision: document.getElementById('p3Decision').value,
+                weights: {
+                    '学業成績': parseInt(document.getElementById('p3Academic').value),
+                    '基礎能力テスト': parseInt(document.getElementById('p3Test').value),
+                    '実践経験': parseInt(document.getElementById('p3Research').value),
+                    '推薦・評価': parseInt(document.getElementById('p3Rec').value),
+                    '志望動機・フィット': parseInt(document.getElementById('p3Diversity').value)
+                },
+                bot_id: 2
+            };
+            return [p1, p2, p3];
         }
 
         async function initializeChat() {
@@ -623,15 +695,20 @@
         }
 
         function validateParticipantWeights() {
-            const [p1, p2] = getParticipantOpinions();
+            const [p1, p2, p3] = getParticipantOpinions();
             const sum1 = Object.values(p1.weights).reduce((s, v) => s + v, 0);
             const sum2 = Object.values(p2.weights).reduce((s, v) => s + v, 0);
+            const sum3 = Object.values(p3.weights).reduce((s, v) => s + v, 0);
             if (sum1 !== 100) {
                 showStatus(`参加者1の重み合計が${sum1}%です。100%にしてください。`, 'error');
                 return false;
             }
             if (sum2 !== 100) {
                 showStatus(`参加者2の重み合計が${sum2}%です。100%にしてください。`, 'error');
+                return false;
+            }
+            if (sum3 !== 100) {
+                showStatus(`参加者3の重み合計が${sum3}%です。100%にしてください。`, 'error');
                 return false;
             }
             return true;
@@ -654,17 +731,20 @@
         // 参加者の重み値変更時の検証
         [
             'p1Academic','p1Test','p1Research','p1Rec','p1Diversity',
-            'p2Academic','p2Test','p2Research','p2Rec','p2Diversity'
+            'p2Academic','p2Test','p2Research','p2Rec','p2Diversity',
+            'p3Academic','p3Test','p3Research','p3Rec','p3Diversity'
         ].forEach(id => {
             document.getElementById(id).addEventListener('change', function() {
-                // 参加者1
-                const [p1, p2] = getParticipantOpinions();
+                const [p1, p2, p3] = getParticipantOpinions();
                 const total1 = Object.values(p1.weights).reduce((s, v) => s + v, 0);
                 const total2 = Object.values(p2.weights).reduce((s, v) => s + v, 0);
+                const total3 = Object.values(p3.weights).reduce((s, v) => s + v, 0);
                 if (id.startsWith('p1')) {
                     this.style.borderColor = (total1 === 100) ? '#28a745' : '#dc3545';
-                } else {
+                } else if (id.startsWith('p2')) {
                     this.style.borderColor = (total2 === 100) ? '#28a745' : '#dc3545';
+                } else if (id.startsWith('p3')) {
+                    this.style.borderColor = (total3 === 100) ? '#28a745' : '#dc3545';
                 }
             });
         });

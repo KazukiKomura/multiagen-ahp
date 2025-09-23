@@ -291,8 +291,11 @@ endblock %} {% block content %}
                         info.criteria|length)|round|int %} {% for criterion in
                         info.criteria %}
                         <div class="weight-item">
-                            {% set display_label = '学歴・所属' if criterion == '志望動機・フィット' else criterion %}
-                            <label for="{{ criterion }}">{{ display_label }}</label>
+                            {% set display_label = '学歴・所属' if criterion ==
+                            '志望動機・フィット' else criterion %}
+                            <label for="{{ criterion }}"
+                                >{{ display_label }}</label
+                            >
                             <div class="weight-controls">
                                 <input
                                     type="range"
@@ -507,8 +510,11 @@ endblock %} {% block content %}
                             info.criteria|length)|round|int %} {% for criterion
                             in info.criteria %}
                             <div class="weight-item">
-                                {% set display_label = '学歴・所属' if criterion == '志望動機・フィット' else criterion %}
-                                <label for="final_{{ criterion }}">{{ display_label }}</label>
+                                {% set display_label = '学歴・所属' if criterion
+                                == '志望動機・フィット' else criterion %}
+                                <label for="final_{{ criterion }}"
+                                    >{{ display_label }}</label
+                                >
                                 <div class="weight-controls">
                                     <input
                                         type="range"
@@ -1325,7 +1331,7 @@ endblock %} {% block content %}
             .catch(error => {
                 console.error('Error:', error);
                 showLoading(false);
-                addMessage('申し訳ございません。エラーが発生しました。', false);
+                addMessage('申し訳ございません。エラーが発生しました。1分ほど時間を空けて同じ内容を送信してみてください。', false);
             });
         }
 

@@ -4,9 +4,8 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # システムの依存関係をインストール
-RUN apt-get update && apt-get install -y \
-    gcc \
-    g++ \
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
     sqlite3 \
     && rm -rf /var/lib/apt/lists/*
 
@@ -25,8 +24,8 @@ RUN mkdir -p data
 # データベースファイルの権限設定
 RUN chmod 777 data
 
-# ポート5000を開放
-EXPOSE 5000
+# run.py は 5002 で起動
+EXPOSE 5002
 
 # アプリケーション起動
-CMD ["python", "app.py"]
+CMD ["python", "run.py"]

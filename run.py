@@ -8,4 +8,5 @@ from the root directory while maintaining the organized src/ structure.
 from src.app import app
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5002)
+    # Bind to 0.0.0.0 so the container port is reachable from host
+    app.run(debug=True, host='0.0.0.0', port=5002)

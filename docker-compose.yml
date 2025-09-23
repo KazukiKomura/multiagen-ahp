@@ -1,25 +1,21 @@
-version: '3.8'
-
 services:
   experiment-system:
     build: .
     ports:
-      - "5000:5000"
+      - "5002:5002"
     environment:
       - FLASK_ENV=development
       - FLASK_DEBUG=1
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_API_KEY2=${OPENAI_API_KEY2}
+      - OPENAI_RESPONSES_MODEL=${OPENAI_RESPONSES_MODEL:-gpt-4.1}
+      - DEBUG_LLM_CONTEXT=0
     volumes:
       - ./data:/app/data
-      - ./static:/app/static
-      - ./templates:/app/templates
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/"]
+      test: ["CMD", "curl", "-f", "http://localhost:5002/"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
-
-volumes:
-  data:
-    driver: local
