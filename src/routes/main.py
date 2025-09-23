@@ -154,9 +154,9 @@ def experience():
     # Create info object expected by template
     student_info = session['student_info']
     info = {
-        'title': '入学審査意思決定',
-        'description': '以下の応募者の情報を基に、入学許可の可否を判断してください。',
-        'criteria': ['学業成績', '試験スコア', '研究能力', '推薦状', '多様性'],
+        'title': '新卒一次選考意思決定',
+        'description': '以下の応募者の情報を基に、一次選考通過の可否を判断してください。',
+        'criteria': ['学業成績', '基礎能力テスト', '実践経験', '推薦・評価', '志望動機・フィット'],
         'student': {
             'id': student_info.get('student_id', 'Unknown'),
             'major': student_info.get('major', 'Unknown'),
@@ -209,7 +209,9 @@ def save_decision():
         })
 
         # 参加者の事前判断・重みを決定して永続化
-        criteria = ['学業成績', '試験スコア', '研究能力', '推薦状', '多様性']
+        # 注意: src のテンプレート（experience.html）の表示基準名に合わせる
+        # （src_2/src_3 とは基準ラベルが異なる）
+        criteria = ['学業成績', '基礎能力テスト', '実践経験', '推薦・評価', '志望動機・フィット']
         from ..utils.data import generate_participant_opinions
         trial = session.get('trial', 1)
         user_initial = decision_data.get('user_decision')
@@ -218,7 +220,7 @@ def save_decision():
             incoming = data.get('participant_opinions')
             def _is_valid(op):
                 try:
-                    if op.get('decision') not in ['合格', '不合格']:
+                    if op.get('decision') not in ['一次通過', '見送り']:
                         return False
                     w = op.get('weights', {})
                     keys = set(w.keys())
@@ -367,7 +369,7 @@ def save_final_decision():
         return jsonify({'error': f'Server error: {str(e)}'}), 500
 
 
-@main_bp.route('/complete')
+@main_bp.route('/complete-1')
 def complete():
     """Completion page"""
     if 'session_id' not in session:
@@ -414,17 +416,17 @@ def final_outcome():
         votes.append({'who': '参加者 2', 'decision': part_decisions[1]})
         votes.append({'who': '参加者 3', 'decision': part_decisions[2]})
     elif user_initial:
-        opposite = '合格' if user_initial == '不合格' else '不合格'
+        opposite = '一次通過' if user_initial == '見送り' else '見送り'
         votes.append({'who': '参加者 1', 'decision': opposite})
         votes.append({'who': '参加者 2', 'decision': opposite})
         votes.append({'who': '参加者 3', 'decision': opposite})
 
     # 多数決の計算
-    counts = {'合格': 0, '不合格': 0}
+    counts = {'一次通過': 0, '見送り': 0}
     for v in votes:
         if v['decision'] in counts:
             counts[v['decision']] += 1
-    outcome = '合格' if counts['合格'] >= counts['不合格'] else '不合格'
+    outcome = '一次通過' if counts['一次通過'] >= counts['見送り'] else '見送り'
 
     # 保存（任意）
     decision_data['group_outcome'] = outcome

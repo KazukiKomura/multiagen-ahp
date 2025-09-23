@@ -8,14 +8,14 @@
     <p>このセッションの最終結果は <strong>多数決</strong> により以下の通り決定されました。</p>
 
     <div class="outcome-card">
-        <div class="outcome-label {{ 'pass' if outcome == '合格' else 'fail' }}">
+        <div class="outcome-label {{ 'pass' if outcome == '一次通過' else 'fail' }}">
             最終決定: {{ outcome }}
         </div>
         <div class="vote-list">
             {% for v in votes %}
             <div class="vote-item">
                 <span class="voter">{{ v.who }}</span>
-                <span class="vote {{ 'pass' if v.decision == '合格' else 'fail' }}">{{ v.decision }}</span>
+                <span class="vote {{ 'pass' if v.decision == '一次通過' else 'fail' }}">{{ v.decision }}</span>
             </div>
             {% endfor %}
         </div>

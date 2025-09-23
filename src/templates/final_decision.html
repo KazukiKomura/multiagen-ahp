@@ -14,7 +14,7 @@ endblock %} {% block content %}
             <div class="initial-choice">
                 <strong>判断:</strong>
                 <span
-                    class="decision-badge {{ 'agree' if initial_decision.decision == '賛成' else 'disagree' }}"
+                    class="decision-badge {{ 'agree' if initial_decision.decision == '一次通過' else 'disagree' }}"
                 >
                     {{ initial_decision.decision or '未設定' }}
                 </span>
@@ -50,7 +50,7 @@ endblock %} {% block content %}
             <div class="opinion-summary">
                 <h5>参加者 {{ opinion.bot_id + 1 }}</h5>
                 <div
-                    class="decision-badge {{ 'agree' if opinion.decision == '賛成' else 'disagree' }}"
+                    class="decision-badge {{ 'agree' if opinion.decision == '一次通過' else 'disagree' }}"
                 >
                     {{ opinion.decision }}
                 </div>
@@ -67,35 +67,35 @@ endblock %} {% block content %}
                     <input
                         type="radio"
                         name="final_decision"
-                        value="賛成"
+                        value="一次通過"
                         {%
                         if
                         initial_decision.decision=""
-                        ="賛成"
+                        ="一次通過"
                         %}checked{%
                         endif
                         %}
                         required
                     />
                     <span class="radio-custom"></span>
-                    賛成
+                    一次通過
                 </label>
                 <label>
                     <input
                         type="radio"
                         name="final_decision"
-                        value="反対"
+                        value="見送り"
                         {%
                         if
                         initial_decision.decision=""
-                        ="反対"
+                        ="見送り"
                         %}checked{%
                         endif
                         %}
                         required
                     />
                     <span class="radio-custom"></span>
-                    反対
+                    見送り
                 </label>
             </div>
         </div>

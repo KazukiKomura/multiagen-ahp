@@ -72,7 +72,7 @@ def get_student_for_trial(trial: int, session_id: str) -> Optional[Dict[str, Any
 
 def format_student_for_display(student_row: Dict[str, Any]) -> Dict[str, Any]:
     """
-    学生データを表示用にフォーマット
+    学生データを表示用にフォーマット（日本の新卒採用向け、元データ値のまま）
     
     Args:
         student_row: 生の学生データ
@@ -80,22 +80,23 @@ def format_student_for_display(student_row: Dict[str, Any]) -> Dict[str, Any]:
     Returns:
         Dict: 表示用にフォーマットされた学生データ
     """
-    # 推薦状を解釈
+    # 推薦状を解釈（面接評価に変更）
     rec_letters = []
     for i in range(1, 4):
         if student_row.get(f'rec_letter_{i}_strong') == '1':
-            rec_letters.append(f'推薦状{i}: 優秀')
+            rec_letters.append(f'面接評価{i}: 優秀')
         elif student_row.get(f'rec_letter_{i}_weak') == '1':
-            rec_letters.append(f'推薦状{i}: 懸念あり')
+            rec_letters.append(f'面接評価{i}: 懸念あり')
         else:
-            rec_letters.append(f'推薦状{i}: 平均的')
+            # 「平均的」ではなく「普通」を返す
+            rec_letters.append(f'面接評価{i}: 普通')
     
-    # 専攻の決定
+    # 専攻の決定（日本の学部分類）
     major_columns = ['major_humanities', 'major_naturalscience', 'major_socialscience', 
                      'major_business', 'major_engineering', 'major_other']
-    major_map = {'major_humanities': '人文学', 'major_naturalscience': '自然科学',
-                 'major_socialscience': '社会科学', 'major_business': 'ビジネス',
-                 'major_engineering': '工学', 'major_other': 'その他'}
+    major_map = {'major_humanities': '文系（人文・社会）', 'major_naturalscience': '理系（自然科学）',
+                 'major_socialscience': '文系（社会科学）', 'major_business': '商学・経済',
+                 'major_engineering': '理系（工学）', 'major_other': 'その他'}
     
     major = 'その他'
     for col in major_columns:
@@ -103,11 +104,11 @@ def format_student_for_display(student_row: Dict[str, Any]) -> Dict[str, Any]:
             major = major_map.get(col, 'その他')
             break
     
-    # 地域の決定
+    # 地域の決定（日本の大学群分類）
     region_columns = ['institution_us', 'institution_canada', 'institution_asia',
                       'institution_europe', 'institution_other']
-    region_map = {'institution_us': '米国', 'institution_canada': 'カナダ',
-                  'institution_asia': 'アジア', 'institution_europe': '欧州',
+    region_map = {'institution_us': '旧帝大・国立上位', 'institution_canada': '国立中位',
+                  'institution_asia': '私立上位', 'institution_europe': '私立中位',
                   'institution_other': 'その他'}
     
     region = 'その他'
@@ -116,18 +117,18 @@ def format_student_for_display(student_row: Dict[str, Any]) -> Dict[str, Any]:
             region = region_map.get(col, 'その他')
             break
     
-    # 機関ランクを文字列に変換
-    institution_map = {'1': '高ランク', '2': '中ランク', '3': '低ランク'}
-    institution_rank = institution_map.get(student_row.get('institution_rank', '2'), '中ランク')
+    # 機関ランクを文字列に変換（日本の大学ランク）
+    institution_map = {'1': 'Sランク', '2': 'Aランク', '3': 'Bランク'}
+    institution_rank = institution_map.get(student_row.get('institution_rank', '2'), 'Aランク')
     
-    # 多様性情報を文字列に変換
+    # 多様性情報を文字列に変換（日本の採用文脈）
     diversity_items = []
     if student_row.get('minority_status') == '1':
-        diversity_items.append('マイノリティ背景')
+        diversity_items.append('地方出身')
     if student_row.get('first_generation') == '1':
         diversity_items.append('第一世代大学生')
     if student_row.get('rural_background') == '1':
-        diversity_items.append('地方出身')
+        diversity_items.append('留学経験あり')
     
     diversity_text = '、'.join(diversity_items) if diversity_items else '一般的背景'
     
@@ -145,38 +146,38 @@ def format_student_for_display(student_row: Dict[str, Any]) -> Dict[str, Any]:
         'rec_letters': rec_letters,
         'diversity_text': diversity_text,
         
-        # 詳細な評価スコア
+        # 詳細な評価スコア（元データのまま）
         'detailed_scores': {
             '学業成績': {
                 'main_score': float(student_row.get('gpa', 0)),
                 'subscores': [
-                    f"GPA: {student_row.get('gpa', 'N/A')}",
-                    f"機関ランク: {institution_rank}"
+                    f"GPA: {student_row.get('gpa', 'N/A')}/4.0",
+                    f"大学ランク: {institution_rank}"
                 ]
             },
-            '試験スコア': {
+            '基礎能力テスト': {
                 'main_score': (int(student_row.get('gre_quant', 0)) + int(student_row.get('gre_verbal', 0))) / 2,
                 'subscores': [
-                    f"定量: {student_row.get('gre_quant', 'N/A')}",
-                    f"言語: {student_row.get('gre_verbal', 'N/A')}",
-                    f"記述: {student_row.get('gre_writing', 'N/A')}"
+                    f"数理: {student_row.get('gre_quant', 'N/A')}/170",
+                    f"言語: {student_row.get('gre_verbal', 'N/A')}/170",
+                    f"適性: {student_row.get('gre_writing', 'N/A')}/6.0"
                 ]
             },
-            '研究能力': {
+            '実践経験': {
                 'main_score': float(student_row.get('sop_score', 0)),
                 'subscores': [
-                    f"研究計画書: {student_row.get('sop_score', 'N/A')}点",
-                    "研究経験: 評価済み"
+                    f"インターン: {student_row.get('sop_score', 'N/A')}/5.0",
+                    f"プロジェクト: {student_row.get('diversity_score', 'N/A')}/5.0"
                 ]
             },
-            '推薦状': {
+            '推薦・評価': {
                 'main_score': len([l for l in rec_letters if '優秀' in l]),
                 'subscores': rec_letters
             },
-            '多様性': {
+            '志望動機・フィット': {
                 'main_score': float(student_row.get('diversity_score', 0)),
                 'subscores': [
-                    f"多様性スコア: {student_row.get('diversity_score', 'N/A')}",
+                    f"志望動機: {student_row.get('diversity_score', 'N/A')}/5.0",
                     f"背景: {diversity_text}"
                 ]
             }
@@ -192,7 +193,7 @@ def generate_bot_opinions_for_student() -> List[Dict[str, Any]]:
         List[Dict]: Bot意見のリスト
     """
     criteria = ['学業成績', '試験スコア', '研究能力', '推薦状', '多様性']
-    decision_labels = ['不合格', '合格']  # 2択に簡素化
+    decision_labels = ['見送り', '一次通過']  # 2択に簡素化
     bot_opinions = []
     
     for bot_id in [1, 2, 3]:
@@ -251,26 +252,26 @@ def generate_participant_opinions(user_decision: str,
             
             # まず2名をランダムに決定
             for _ in range(2):
-                participant_choices.append('合格' if rng.random() < 0.5 else '不合格')
+                participant_choices.append('一次通過' if rng.random() < 0.5 else '見送り')
             
             # 3名目は2-2を避けるよう調整
-            user_count = 1 if user_choice == '合格' else 0
-            participant_pass_count = sum(1 for d in participant_choices if d == '合格')
+            user_count = 1 if user_choice == '一次通過' else 0
+            participant_pass_count = sum(1 for d in participant_choices if d == '一次通過')
             total_pass_count = user_count + participant_pass_count
             
             # 現在のカウントで最終的に2-2になるかチェック
             if total_pass_count == 2:
                 # 2-2になってしまうので、3名目で調整
-                third_choice = '不合格' if user_choice == '合格' else '合格'
+                third_choice = '見送り' if user_choice == '一次通過' else '一次通過'
             else:
                 # 2-2にならないので、3名目はランダム
-                third_choice = '合格' if rng.random() < 0.5 else '不合格'
+                third_choice = '一次通過' if rng.random() < 0.5 else '見送り'
             
             participant_choices.append(third_choice)
             return participant_choices
         else:
             # 本番: 全員ユーザーの初回判断の反対
-            opposite = '不合格' if user_decision == '合格' else '合格'
+            opposite = '見送り' if user_decision == '一次通過' else '一次通過'
             return [opposite, opposite, opposite]
 
     decisions = gen_decisions_for_trial()

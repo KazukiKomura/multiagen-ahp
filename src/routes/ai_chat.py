@@ -24,15 +24,15 @@ RULES_BUBBLE_TEXT = (
     "【手続とルールのご案内】\n\n"
     "本システムでは以下のルールに基づいて評価を行います：\n\n"
     "**評価基準**\n"
-    "- 5項目（学業成績、試験スコア、研究能力、推薦状、多様性）の加重平均\n"
-    "- 総合判定：あなたの重み配分 + 参加者3名の多数決\n\n"
+    "- 5項目（学業成績、基礎能力テスト、実践経験、推薦・評価、学歴・所属）の加重平均\n"
+    "- 総合判定：あなたの重み配分 + 参加者3名の多数決（一次通過/見送り）\n\n"
     "**重要な制約**\n"
     "- AIは結果を変更できません\n"
     "- 誤読・見落としがあれば異議申し立てで確認します\n"
     "- すべての評価根拠を透明に開示します\n\n"
     "**今後の流れ**\n"
     "1. あなたの重視点の確認\n"
-    "2. 合格・不合格の観点整理と質問・異議機会\n"
+    "2. 一次通過・見送りの観点整理と質問・異議機会\n"
     "3. 最終結果の要約\n"
 )
 
@@ -57,27 +57,39 @@ def _get_system_prompt() -> str:
     if env_prompt and env_prompt.strip():
         return env_prompt
     return (
-        "あなたは合否判断の合意形成を支援するAIファシリテータです。"
-        "ユーザーの重視点（学業成績・試験スコア・研究能力・推薦状・多様性）と3名の参加者の観点を踏まえ、"
-        "簡潔に状況整理し、1つの質問のみを行ってください。"
+        "あなたは一次選考判断の合意形成を支援するAIファシリテータです。"
+        "ユーザーの重視点（学業成績・基礎能力テスト・実践経験・推薦・評価・学歴・所属）と"
+        "3名の参加者の観点を踏まえ、簡潔に状況整理し、1つの質問のみを行ってください。"
     )
 
 
 def _build_initial_messages(weights: Dict[str, int]) -> List[Dict[str, str]]:
     # ルール案内 + 重み確認（Streamlitの初期2バブルと同等）
     weights = weights or {}
-    criteria_order = ['学業成績', '試験スコア', '研究能力', '推薦状', '多様性']
+    # src/templates/experience.html の基準表記に合わせる（表示名）
+    criteria_order = ['学業成績', '基礎能力テスト', '実践経験', '推薦・評価', '学歴・所属']
     # 表示はUIの5項目に統一
     lines = [
         "【あなたの重視点について】\n",
-        "UIで設定された重み配分を確認しました：\n",
+        "画面上で設定された重み配分を確認しました：\n",
     ]
+    # 表示名→実キー（互換）
+    key_map = {'学歴・所属': '志望動機・フィット'}
     for c in criteria_order:
         v = weights.get(c)
+        if v is None:
+            v = weights.get(key_map.get(c, ''), None)
         v = int(v) if isinstance(v, (int, float, str)) and str(v).isdigit() else (20 if c != '学業成績' else 20)
         lines.append(f"- {c}: {v}%\n")
     # 上位強調
-    top = sorted([(k, int(weights.get(k, 0))) for k in criteria_order], key=lambda kv: kv[1], reverse=True)
+    def _val_for(k: str) -> int:
+        rawk = key_map.get(k, k)
+        try:
+            val = weights.get(rawk, 0)
+            return int(val) if str(val).isdigit() else 0
+        except Exception:
+            return 0
+    top = sorted([(k, _val_for(k)) for k in criteria_order], key=lambda kv: kv[1], reverse=True)
     top_name = top[0][0] if top else '学業成績'
     lines += [
         "\n",
@@ -86,8 +98,9 @@ def _build_initial_messages(weights: Dict[str, int]) -> List[Dict[str, str]]:
         "なお、参加者3名もそれぞれ異なる基準を持って評価を行っています。",
     ]
     weights_text = ''.join(lines)
+    # 画面側で注意事項（手続とルール）を表示するため、
+    # チャット内のルール案内バブルは出さず、重み確認のみ表示
     return [
-        {"role": "assistant", "content": RULES_BUBBLE_TEXT},
         {"role": "assistant", "content": weights_text},
     ]
 
@@ -230,7 +243,7 @@ def ai_chat():
 
             # 2. 分析結果をLLMのコンテキストに追加
             ctx['argumentation_analysis'] = debate_summary
-            
+
             # 3. 議論構造に基づく推奨質問も生成
             focused_question = argumentation_engine.generate_focused_question(debate_summary, messages)
             ctx['suggested_question'] = focused_question
@@ -301,10 +314,10 @@ def get_chat_history():
     """Retrieve chat history for current session"""
     if 'session_id' not in session:
         return jsonify({'error': 'No session'}), 400
-    
+
     session_id = session['session_id']
     history = session_repository.get_ai_chat_history(session_id)
-    
+
     return jsonify({
         'success': True,
         'history': history

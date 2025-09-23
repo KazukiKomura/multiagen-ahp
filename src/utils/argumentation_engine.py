@@ -187,7 +187,7 @@ def summarize_debate(arguments: List[Dict[str, Any]], attacks: List[Tuple[str, s
         # student_infoから具体的なスコアを取得できるとさらに良い
         # score_info = context.get('student_info', {}).get('detailed_scores', {}).get(criterion, {}).get('main_score', 'N/A')
         suggested_question_direction = (
-            f"同じ『{criterion}』という基準を見ても判断が分かれた理由、つまり評価の解釈（合格ライン）がどう違うのかについて"
+            f"同じ『{criterion}』という基準を見ても判断が分かれた理由、つまり評価の解釈（通過ライン）がどう違うのかについて"
         )
     else:
         # CASE 2: 最重視基準が異なる場合（既存のロジック）

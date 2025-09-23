@@ -1,10 +1,11 @@
 {% extends "base.html" %} {% block title %}{% if phase == 'pre' %}事前{% else
-%}事後{% endif %}質問紙 - 意思決定実験システム{% endblock %} {% block content %}
+%}事後{% endif %}アンケート - 意思決定実験システム{% endblock %} {% block
+content %}
 <div class="questionnaire-section">
     <h2>
-        {% if phase == 'pre' %} 事前質問紙 {% else %} {% if trial == 1 %}
-        練習セッション完了 - フィードバック {% else %} 事後質問紙 (本番 {{ trial
-        - 1 }}/3) {% endif %} {% endif %}
+        {% if phase == 'pre' %} 事前アンケート {% else %} {% if trial == 1 %}
+        練習セッション完了 - フィードバック {% else %} 事後アンケート (本番 {{
+        trial - 1 }}/3) {% endif %} {% endif %}
     </h2>
 
     {% if phase == 'post' and trial == 1 %}
@@ -520,11 +521,10 @@
                     <strong><span id="sns_q2_value">未選択</span></strong>
                 </div>
             </div>
-
+            <!--（逆転項目）-->
             <div class="item-block">
                 <div class="item-text">
-                    C4.
-                    数字による説明より言葉の説明のほうが理解しやすい。（逆転項目）
+                    C4. 数字による説明より言葉の説明のほうが理解しやすい。
                 </div>
                 <input
                     type="range"
@@ -992,6 +992,28 @@
                     選択値:
                     <strong><span id="sat_team_value">未選択</span></strong>
                 </div>
+            </div>
+        </div>
+        {% endif %} {% if phase == 'post' and trial == 4 %}
+        <!-- 本番セッション3終了後の任意自由記述 -->
+        <div class="question-group">
+            <div class="section-title">自由記述（任意）</div>
+            <div class="item-block">
+                <div class="item-text">
+                    本セッション全体について、自由にご意見・ご感想をご記入ください（任意）
+                </div>
+                <textarea
+                    id="free_comment"
+                    name="free_comment"
+                    rows="4"
+                    style="
+                        width: 100%;
+                        padding: 8px;
+                        border: 1px solid #d1d5db;
+                        border-radius: 6px;
+                    "
+                    placeholder="任意でご記入ください"
+                ></textarea>
             </div>
         </div>
         {% endif %}

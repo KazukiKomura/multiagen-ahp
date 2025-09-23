@@ -1,23 +1,68 @@
-{% extends "base.html" %}
-
-{% block title %}体験フェーズ - 意思決定実験システム{% endblock %}
-
-{% block content %}
+{% extends "base.html" %} {% block title %}体験フェーズ - 意思決定実験システム{%
+endblock %} {% block content %}
 <div class="experience-section">
     <!-- セッション説明バナー -->
     {% if trial == 1 %}
     <div class="session-banner trial-banner">
         <div class="banner-content">
             <h3>🎯 練習セッション</h3>
-            <p>これは<strong>練習</strong>です。システムの使い方に慣れるためのトライアルセッションです。<br>
-            この後、異なる応募者について<strong>3回の本番セッション</strong>を行います。</p>
+            <p>
+                これは<strong>練習</strong>です。システムの使い方に慣れるためのトライアルセッションです。<br />
+                この後、異なる応募者について<strong>3回の本番セッション</strong>を行います。
+            </p>
+        </div>
+    </div>
+    <!-- 練習セッションの具体的な案内 -->
+    <div class="practice-guide">
+        <div class="guide-title">このセッションでの役割と流れ</div>
+        <ul class="guide-list">
+            <li>
+                <strong>あなたと複数の価値基準を持ったAI（参加者）3名</strong
+                >が大手企業の一次選考担当者です。まず下の応募者情報を読み、「一次通過/見送り」を選びます。
+            </li>
+            <li>
+                判断の根拠として、<strong>5つの基準の重要度</strong>をスライダーで設定します（合計100%）。
+            </li>
+            <li>
+                続いて、<strong>他のAI（AI）3名の意見</strong>を確認します。
+            </li>
+            <li>
+                必要に応じて<strong>最終判定と重要度</strong>を見直し、確定してください。
+            </li>
+        </ul>
+        <div class="guide-note">
+            練習の目的は操作に慣れることです。本番と同じ流れで進みますが、落ち着いて手順を確認しながら進めてください。
         </div>
     </div>
     {% else %}
     <div class="session-banner main-banner">
         <div class="banner-content">
             <h3>✨ 本番セッション {{ trial - 1 }}/3</h3>
-            <p>これは<strong>本番</strong>のセッションです。あなたの判断が研究データとして使用されます。</p>
+            <p>
+                これは<strong>本番</strong>のセッションです。あなたの判断が研究データとして使用されます。
+            </p>
+        </div>
+    </div>
+    <!-- 本番セッションでも役割の明記を表示 -->
+    <div class="practice-guide">
+        <div class="guide-title">このセッションでの役割と流れ</div>
+        <ul class="guide-list">
+            <li>
+                <strong>あなたと複数の価値基準を持ったAI（他AI）</strong
+                >が一次選考の担当者です。まず下の応募者情報を読み、「一次通過/見送り」を選びます。
+            </li>
+            <li>
+                判断の根拠として、<strong>5つの基準の重要度</strong>をスライダーで設定します（合計100%）。
+            </li>
+            <li>
+                続いて、<strong>他のAI（AI）3名の意見</strong>を確認します。
+            </li>
+            <li>
+                必要に応じて<strong>最終判定と重要度</strong>を見直し、確定してください。
+            </li>
+        </ul>
+        <div class="guide-note">
+            この本番の判断は研究データとして使用されます。落ち着いて、納得のいく最終判断を行ってください。
         </div>
     </div>
     {% endif %}
@@ -35,7 +80,9 @@
                 <div class="basic-info">
                     <span class="info-tag">{{ info.student.major }}</span>
                     <span class="info-tag">{{ info.student.region }}</span>
-                    <span class="info-tag">{{ info.student.institution_rank }}機関</span>
+                    <span class="info-tag"
+                        >{{ info.student.institution_rank }}フィット</span
+                    >
                 </div>
             </div>
 
@@ -47,76 +94,129 @@
                         <h4>📚 学業成績</h4>
                     </div>
                     <div class="category-details">
-                        <div class="score-large">GPA {{ info.student.gpa }}/4.0</div>
-                        <div class="score-bar">
-                            <div class="score-fill" style="width: {{ (info.student.gpa / 4.0 * 100) | round | int }}%"></div>
+                        <div class="score-large">
+                            GPA {{ info.student.gpa }}/4.0
                         </div>
-                        <div class="category-description">直近の学位での成績平均</div>
+                        <div class="score-bar">
+                            <div
+                                class="score-fill"
+                                style="width: {{ (info.student.gpa / 4.0 * 100) | round | int }}%"
+                            ></div>
+                        </div>
+                        <div class="category-description">
+                            大学での総合成績（GPA・単位取得率）
+                        </div>
                     </div>
                 </div>
 
-                <!-- 2. 試験スコア -->
+                <!-- 2. 基礎能力テスト -->
                 <div class="category-card">
                     <div class="category-header">
-                        <h4>📝 試験スコア</h4>
+                        <h4>📝 基礎能力テスト</h4>
                     </div>
                     <div class="category-details">
                         <div class="score-breakdown">
-                            <div class="subscore">定量: <strong>{{ info.student.gre_quant }}</strong>/170</div>
-                            <div class="subscore">言語: <strong>{{ info.student.gre_verbal }}</strong>/170</div>
-                            <div class="subscore">作文: <strong>{{ info.student.gre_writing }}</strong>/6.0</div>
+                            <div class="subscore">
+                                数理:
+                                <strong>{{ info.student.gre_quant }}</strong
+                                >/170
+                            </div>
+                            <div class="subscore">
+                                言語:
+                                <strong>{{ info.student.gre_verbal }}</strong
+                                >/170
+                            </div>
+                            <div class="subscore">
+                                適性:
+                                <strong>{{ info.student.gre_writing }}</strong
+                                >/6.0
+                            </div>
                         </div>
-                        <div class="category-description">GRE総合スコア: {{ info.student.gre_quant + info.student.gre_verbal }}/340</div>
+                        <div class="category-description">
+                            Web適性検査・SPI総合スコア
+                        </div>
                     </div>
                 </div>
 
-                <!-- 3. 研究能力 -->
+                <!-- 3. 実践経験 -->
                 <div class="category-card">
                     <div class="category-header">
-                        <h4>🔬 研究能力</h4>
+                        <h4>💼 実践経験</h4>
                     </div>
                     <div class="category-details">
                         <div class="score-breakdown">
-                            <div class="subscore">志望動機書: <strong>{{ info.student.sop_score }}</strong>/5.0</div>
-                            <div class="subscore">多様性声明: <strong>{{ info.student.diversity_score }}</strong>/5.0</div>
+                            <div class="subscore">
+                                インターン:
+                                <strong>{{ info.student.sop_score }}</strong
+                                >/5.0
+                            </div>
+                            <div class="subscore">
+                                プロジェクト:
+                                <strong
+                                    >{{ info.student.diversity_score }}</strong
+                                >/5.0
+                            </div>
                         </div>
                         <div class="score-bar">
-                            <div class="score-fill" style="width: {{ (info.student.sop_score / 5 * 100) | round | int }}%"></div>
+                            <div
+                                class="score-fill"
+                                style="width: {{ (info.student.sop_score / 5 * 100) | round | int }}%"
+                            ></div>
                         </div>
-                        <div class="category-description">研究への意欲・能力評価</div>
+                        <div class="category-description">
+                            長期インターン・実践プロジェクト経験
+                        </div>
                     </div>
                 </div>
 
-                <!-- 4. 推薦状 -->
+                <!-- 4. 推薦・評価 -->
                 <div class="category-card">
                     <div class="category-header">
-                        <h4>📄 推薦状</h4>
+                        <h4>📄 推薦・評価</h4>
                     </div>
                     <div class="category-details">
                         <div class="rec-letters-display">
                             {% for letter in info.student.rec_letters %}
-                            <div class="letter-item {{ 'excellent' if '優秀' in letter else ('average' if '普通' in letter else 'weak') }}">
-                                {{ letter }}
+                            <div
+                                class="letter-item {{ 'excellent' if '優秀' in letter else ('average' if '普通' in letter else 'weak') }}"
+                            >
+                                {{ letter.replace('推薦状', '面接評価') }}
                             </div>
                             {% endfor %}
                         </div>
-                        <div class="category-description">3通の推薦状評価</div>
+                        <div class="category-description">
+                            面接官評価・OB訪問・課題スコア
+                        </div>
                     </div>
                 </div>
 
-                <!-- 5. 多様性 -->
+                <!-- 5. 学歴・所属（大学所属の文脈に合わせて表記） -->
                 <div class="category-card">
                     <div class="category-header">
-                        <h4>🌍 多様性</h4>
+                        <h4>🏫 学歴・所属</h4>
                     </div>
                     <div class="category-details">
-                        <div class="score-large">{{ info.student.diversity_score }}/5.0</div>
-                        <div class="diversity-info">
-                            <div class="diversity-item">専攻: <strong>{{ info.student.major }}</strong></div>
-                            <div class="diversity-item">出身: <strong>{{ info.student.region }}</strong></div>
-                            <div class="diversity-item">機関: <strong>{{ info.student.institution_rank }}ランク</strong></div>
+                        <div class="score-large">
+                            {{ info.student.diversity_score }}/5.0
                         </div>
-                        <div class="category-description">背景・経験の多様性評価</div>
+                        <div class="diversity-info">
+                            <div class="diversity-item">
+                                専攻: <strong>{{ info.student.major }}</strong>
+                            </div>
+                            <div class="diversity-item">
+                                出身:
+                                <strong>{{ info.student.region }}</strong>
+                            </div>
+                            <div class="diversity-item">
+                                ランク:
+                                <strong
+                                    >{{ info.student.institution_rank }}</strong
+                                >
+                            </div>
+                        </div>
+                        <div class="category-description">
+                            学歴・所属に関する情報
+                        </div>
                     </div>
                 </div>
             </div>
@@ -148,40 +248,67 @@
         <!-- フェーズ1: 自分の意見表明 -->
         <div class="phase-content active no-scroll" data-phase="0">
             <h3>あなたの意見をお聞かせください</h3>
-            <form id="initialDecisionForm" method="post" action="javascript:void(0);">
+            <form
+                id="initialDecisionForm"
+                method="post"
+                action="javascript:void(0);"
+            >
                 <div class="decision-choice">
-                    <h4>入学判定をお選びください <span class="required">*必須</span></h4>
+                    <h4>
+                        一次選考結果をお選びください
+                        <span class="required">*必須</span>
+                    </h4>
                     <div class="radio-group simple-options">
                         <label>
-                            <input type="radio" name="decision" value="合格" required>
+                            <input
+                                type="radio"
+                                name="decision"
+                                value="一次通過"
+                                required
+                            />
                             <span class="radio-custom"></span>
-                            合格
+                            一次通過
                         </label>
                         <label>
-                            <input type="radio" name="decision" value="不合格" required>
+                            <input
+                                type="radio"
+                                name="decision"
+                                value="見送り"
+                                required
+                            />
                             <span class="radio-custom"></span>
-                            不合格
+                            見送り
                         </label>
                     </div>
                 </div>
 
                 <div class="weights-section no-scroll">
-                    <h4>なぜ上記の決断をしました?決断で重視した基準を以下で設定してください（合計100%）</h4>
+                    <h4>
+                        なぜ上記の決断をしました?決断で重視した基準を以下で設定してください（合計100%）
+                    </h4>
                     <div class="weights-container no-scroll">
-                        {% set initial_weight = (100 / info.criteria|length)|round|int %}
-                        {% for criterion in info.criteria %}
+                        {% set initial_weight = (100 /
+                        info.criteria|length)|round|int %} {% for criterion in
+                        info.criteria %}
                         <div class="weight-item">
-                            <label for="{{ criterion }}">{{ criterion }}</label>
+                            {% set display_label = '学歴・所属' if criterion == '志望動機・フィット' else criterion %}
+                            <label for="{{ criterion }}">{{ display_label }}</label>
                             <div class="weight-controls">
-                                <input type="range"
-                                       id="{{ criterion }}"
-                                       name="{{ criterion }}"
-                                       min="0"
-                                       max="100"
-                                       value="{{ initial_weight }}"
-                                       step="10"
-                                       class="weight-slider">
-                                <span class="weight-value" id="{{ criterion }}-value">{{ initial_weight }}</span>%
+                                <input
+                                    type="range"
+                                    id="{{ criterion }}"
+                                    name="{{ criterion }}"
+                                    min="0"
+                                    max="100"
+                                    value="{{ initial_weight }}"
+                                    step="10"
+                                    class="weight-slider"
+                                />
+                                <span
+                                    class="weight-value"
+                                    id="{{ criterion }}-value"
+                                    >{{ initial_weight }}</span
+                                >%
                             </div>
                         </div>
                         {% endfor %}
@@ -189,18 +316,32 @@
                     <div class="total-weight">
                         合計: <span id="total-weight">100</span>%
                     </div>
-                    <div id="equal-weights-warning" class="warning-message" style="display: none;">
-                        ⚠️ 全ての基準が同じ重みになっています。異なる重要度を設定してください。
+                    <div
+                        id="equal-weights-warning"
+                        class="warning-message"
+                        style="display: none"
+                    >
+                        ⚠️
+                        全ての基準が同じ重みになっています。異なる重要度を設定してください。
                     </div>
                 </div>
 
-                <button type="button" class="btn btn-primary" id="confirmDecisionBtn">意見を確定して次へ</button>
+                <button
+                    type="button"
+                    class="btn btn-primary"
+                    id="confirmDecisionBtn"
+                >
+                    意見を確定して次へ
+                </button>
             </form>
         </div>
 
         <!-- フェーズ2: 他の意見確認 -->
         <div class="phase-content no-scroll" data-phase="1">
-            <h3>他の参加者の意見</h3>
+            <h3>他のAIの意見</h3>
+            <div class="section-help">
+                あなたの初回判断と重みを、価値基準の異なるAI（3名）の判断・重みと並べて比較するページです。違いを把握し、次ページ以降の参考にしてください。
+            </div>
             <div class="opinions-comparison no-scroll">
                 <div class="my-opinion no-scroll">
                     <h4>あなたの意見</h4>
@@ -210,18 +351,45 @@
                 </div>
 
                 <div class="others-opinions no-scroll">
-                    <h4>他の参加者の意見</h4>
+                    <h4>他のAIの意見</h4>
                     <div class="opinions-grid no-scroll" id="othersOpinions">
                         <!-- JavaScript で動的に表示 -->
                     </div>
                 </div>
             </div>
-            <button class="btn btn-primary" onclick="nextPhase()">AIチャットへ進む</button>
+            <button class="btn btn-primary" onclick="nextPhase()">
+                AIチャットへ進む
+            </button>
         </div>
 
         <!-- フェーズ3: AIチャット -->
         <div class="phase-content" data-phase="2">
-            <h3>AIファシリテーターとの対話</h3>
+            <h3 id="ai-chat-title">AIファシリテーターとの対話</h3>
+            <div class="ai-rules-notice">
+                <div class="rules-title">【手続とルールのご案内】</div>
+                <div class="rules-section">
+                    <div class="rules-subtitle">
+                        本システムでは以下のルールに基づいて評価を行います：
+                    </div>
+                    <div class="rules-subheading">評価基準</div>
+                    <ul>
+                        <li>この後最終意思決定をした後の多数決</li>
+                    </ul>
+
+                    <div class="rules-subheading">今後の流れ</div>
+                    <ol>
+                        <li>
+                            以下でファシリテータから質問を行い、意見を整理する
+                        </li>
+                        <li>必要に応じて他の参加者AIへの異議申し立てが可能</li>
+                        <li>
+                            会話を<strong
+                                >最低4回以上繰り返したのちに、最終結果を次ページで確定</strong
+                            >
+                        </li>
+                    </ol>
+                </div>
+            </div>
             <div class="split-view">
                 <div class="opinions-sidebar">
                     <h4>意見の比較</h4>
@@ -233,17 +401,40 @@
                     <div class="chat-messages" id="chatMessages">
                         <!-- AI初期メッセージは動的に読み込み -->
                     </div>
-                    <div class="loading-indicator" id="loadingIndicator" style="display: none;">
+                    <div
+                        class="loading-indicator"
+                        id="loadingIndicator"
+                        style="display: none"
+                    >
                         <div class="loading-spinner"></div>
-                        <div class="loading-text">AIが回答を考えています...</div>
+                        <div class="loading-text">
+                            AIが回答を考えています...
+                        </div>
                     </div>
                     <div class="chat-input-container">
-                        <input type="text" id="chatInput" placeholder="メッセージを入力してください..." maxlength="500">
-                        <button id="sendButton" class="btn btn-primary">送信</button>
+                        <input
+                            type="text"
+                            id="chatInput"
+                            placeholder="メッセージを入力してください..."
+                            maxlength="500"
+                        />
+                        <button id="sendButton" class="btn btn-primary">
+                            送信
+                        </button>
                     </div>
                     <div class="chat-info">
-                        <p>会話回数: <span id="messageCount">0</span>（最低4回）</p>
-                        <button class="btn btn-secondary" id="finishChat" style="display: none;" onclick="nextPhase()">対話を終了して最終決定へ</button>
+                        <p>
+                            会話回数:
+                            <span id="messageCount">0</span>（最低4回）
+                        </p>
+                        <button
+                            class="btn btn-secondary"
+                            id="finishChat"
+                            style="display: none"
+                            onclick="nextPhase()"
+                        >
+                            対話を終了して最終決定へ
+                        </button>
                     </div>
                 </div>
             </div>
@@ -261,7 +452,9 @@
                     <li>変更理由（任意）と信頼度を入力</li>
                     <li>「最終決定を確定する」をクリック</li>
                 </ul>
-                <div class="guide-note">提出後は取り消しできません。慎重にご確認ください。</div>
+                <div class="guide-note">
+                    提出後は取り消しできません。慎重にご確認ください。
+                </div>
             </div>
             <div class="final-decision-area">
                 <div class="decision-comparison">
@@ -273,851 +466,995 @@
                     </div>
                 </div>
 
-                <form id="finalDecisionForm" method="post" action="javascript:void(0);">
+                <form
+                    id="finalDecisionForm"
+                    method="post"
+                    action="javascript:void(0);"
+                >
                     <div class="final-choice">
                         <h4>最終判定</h4>
                         <div class="radio-group simple-options">
                             <label>
-                                <input type="radio" name="final_decision" value="合格" required>
+                                <input
+                                    type="radio"
+                                    name="final_decision"
+                                    value="一次通過"
+                                    required
+                                />
                                 <span class="radio-custom"></span>
-                                合格
+                                一次通過
                             </label>
                             <label>
-                                <input type="radio" name="final_decision" value="不合格" required>
+                                <input
+                                    type="radio"
+                                    name="final_decision"
+                                    value="見送り"
+                                    required
+                                />
                                 <span class="radio-custom"></span>
-                                不合格
+                                見送り
                             </label>
                         </div>
                     </div>
 
                     <div class="final-weights">
                         <h4>最終重要度設定</h4>
-                        <p class="hint-text">初回の重みを初期値として読み込み済みです。必要に応じて合計が100%になるよう微調整してください。</p>
+                        <p class="hint-text">
+                            初回の重みを初期値として読み込み済みです。必要に応じて合計が100%になるよう微調整してください。
+                        </p>
                         <div class="weights-container">
-                            {% set final_initial_weight = (100 / info.criteria|length)|round|int %}
-                            {% for criterion in info.criteria %}
+                            {% set final_initial_weight = (100 /
+                            info.criteria|length)|round|int %} {% for criterion
+                            in info.criteria %}
                             <div class="weight-item">
-                                <label for="final_{{ criterion }}">{{ criterion }}</label>
+                                {% set display_label = '学歴・所属' if criterion == '志望動機・フィット' else criterion %}
+                                <label for="final_{{ criterion }}">{{ display_label }}</label>
                                 <div class="weight-controls">
-                                    <input type="range"
-                                           id="final_{{ criterion }}"
-                                           name="final_{{ criterion }}"
-                                           min="0"
-                                           max="100"
-                                           value="{{ final_initial_weight }}"
-                                           step="10"
-                                           class="weight-slider final-slider">
-                                    <span class="weight-value" id="final_{{ criterion }}-value">{{ final_initial_weight }}</span>%
+                                    <input
+                                        type="range"
+                                        id="final_{{ criterion }}"
+                                        name="final_{{ criterion }}"
+                                        min="0"
+                                        max="100"
+                                        value="{{ final_initial_weight }}"
+                                        step="10"
+                                        class="weight-slider final-slider"
+                                    />
+                                    <span
+                                        class="weight-value"
+                                        id="final_{{ criterion }}-value"
+                                        >{{ final_initial_weight }}</span
+                                    >%
                                 </div>
                             </div>
                             {% endfor %}
                         </div>
-                            <div class="total-weight">
-                                合計: <span id="final-total-weight">100</span>%
-                            </div>
+                        <div class="total-weight">
+                            合計: <span id="final-total-weight">100</span>%
+                        </div>
                     </div>
 
                     <div class="change-reasoning">
                         <h4>変更理由（変更がある場合）</h4>
-                        <textarea name="change_reasoning" rows="3"
-                                  placeholder="判断や重要度を変更された場合、その理由をお聞かせください"></textarea>
+                        <textarea
+                            name="change_reasoning"
+                            rows="3"
+                            placeholder="判断や重要度を変更された場合、その理由をお聞かせください"
+                        ></textarea>
                     </div>
 
                     <div class="confidence-rating">
                         <h4>最終判断への信頼度</h4>
                         <div class="scale-input">
-                            <input type="range" id="confidence" name="confidence" min="1" max="7" value="4" class="slider">
+                            <input
+                                type="range"
+                                id="confidence"
+                                name="confidence"
+                                min="1"
+                                max="7"
+                                value="4"
+                                class="slider"
+                            />
                             <div class="scale-labels">
                                 <span>全く信頼していない</span>
-                                <span class="scale-value" id="confidence-value">4</span>
+                                <span class="scale-value" id="confidence-value"
+                                    >4</span
+                                >
                                 <span>完全に信頼している</span>
                             </div>
                         </div>
                     </div>
 
-                    <button type="submit" class="btn btn-primary">最終決定を確定する</button>
+                    <button type="submit" class="btn btn-primary">
+                        最終決定を確定する
+                    </button>
                 </form>
             </div>
         </div>
     </div>
 </div>
-{% endblock %}
-
-{% block scripts %}
+{% endblock %} {% block scripts %}
 <style>
-/* Loading indicator styles */
-/* Final decision guidance */
-.final-guide {
-    background: #f8f9ff;
-    border: 1px solid #e0e7ff;
-    border-radius: 8px;
-    padding: 12px 14px;
-    margin: 8px 0 16px;
-}
-.final-guide .guide-title {
-    font-weight: 600;
-    color: #374151;
-    margin-bottom: 6px;
-}
-.final-guide .guide-list {
-    margin: 6px 0 8px 18px;
-}
-.final-guide .guide-list li { margin: 2px 0; }
-.final-guide .guide-note {
-    font-size: 12px;
-    color: #6b7280;
-}
-.hint-text { color: #6b7280; font-size: 13px; margin: 6px 0 10px; }
-.loading-indicator {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 15px;
-    background-color: #f8f9fa;
-    border-radius: 8px;
-    margin: 10px 0;
-    border: 1px solid #e9ecef;
-}
+    /* AIチャット注意事項 */
+    .ai-rules-notice {
+        background: #f9fafb;
+        border: 1px solid #e5e7eb;
+        border-left: 4px solid #0ea5e9;
+        padding: 12px 14px;
+        border-radius: 8px;
+        margin: 8px 0 14px;
+        color: #374151;
+    }
+    .ai-rules-notice .rules-title {
+        font-weight: 700;
+        margin-bottom: 6px;
+        color: #1f2937;
+    }
+    .ai-rules-notice .rules-subtitle {
+        font-weight: 600;
+        margin: 6px 0 4px;
+    }
+    .ai-rules-notice .rules-subheading {
+        font-weight: 600;
+        margin-top: 6px;
+    }
+    .ai-rules-notice ul {
+        margin: 4px 0 6px 18px;
+    }
+    .ai-rules-notice ol {
+        margin: 4px 0 6px 18px;
+    }
+    /* 練習セッション案内の軽量スタイル */
+    .practice-guide {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-left: 4px solid #3b82f6;
+        padding: 12px 16px;
+        border-radius: 8px;
+        margin: 12px 0 20px;
+    }
+    .practice-guide .guide-title {
+        font-weight: 600;
+        color: #1f2937;
+        margin-bottom: 6px;
+    }
+    .practice-guide .guide-list {
+        margin: 6px 0 8px 18px;
+        color: #374151;
+    }
+    .practice-guide .guide-list li {
+        margin: 4px 0;
+        line-height: 1.5;
+    }
+    .practice-guide .guide-note {
+        color: #4b5563;
+        font-size: 0.9em;
+    }
+    /* セクション簡易説明 */
+    .section-help {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        padding: 8px 10px;
+        margin: 6px 0 12px;
+        color: #374151;
+        font-size: 0.95em;
+    }
+    /* スクロール位置の余白（見出しが上に貼り付かないように） */
+    #ai-chat-title {
+        scroll-margin-top: 24px;
+    }
+    /* Loading indicator styles */
+    /* Final decision guidance */
+    .final-guide {
+        background: #f8f9ff;
+        border: 1px solid #e0e7ff;
+        border-radius: 8px;
+        padding: 12px 14px;
+        margin: 8px 0 16px;
+    }
+    .final-guide .guide-title {
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 6px;
+    }
+    .final-guide .guide-list {
+        margin: 6px 0 8px 18px;
+    }
+    .final-guide .guide-list li {
+        margin: 2px 0;
+    }
+    .final-guide .guide-note {
+        font-size: 12px;
+        color: #6b7280;
+    }
+    .hint-text {
+        color: #6b7280;
+        font-size: 13px;
+        margin: 6px 0 10px;
+    }
+    .loading-indicator {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 15px;
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        margin: 10px 0;
+        border: 1px solid #e9ecef;
+    }
 
-.loading-spinner {
-    width: 20px;
-    height: 20px;
-    border: 2px solid #e9ecef;
-    border-top: 2px solid #007bff;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-    margin-right: 10px;
-}
+    .loading-spinner {
+        width: 20px;
+        height: 20px;
+        border: 2px solid #e9ecef;
+        border-top: 2px solid #007bff;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-right: 10px;
+    }
 
-.loading-text {
-    color: #6c757d;
-    font-size: 14px;
-    font-style: italic;
-}
+    .loading-text {
+        color: #6c757d;
+        font-size: 14px;
+        font-style: italic;
+    }
 
-/* Markdown styles inside bubbles */
-.chat-messages .message-content h1,
-.chat-messages .message-content h2,
-.chat-messages .message-content h3 {
-    margin: 6px 0 4px;
-}
-.chat-messages .message-content p { margin: 6px 0; }
-.chat-messages .message-content ul,
-.chat-messages .message-content ol { margin: 6px 0 6px 18px; }
-.chat-messages .message-content code { background: #f6f8fa; padding: 0 3px; border-radius: 4px; }
-.chat-messages .message-content pre { background: #f6f8fa; padding: 8px; border-radius: 6px; overflow-x: auto; }
-.chat-messages .message-content a { color: #0d6efd; text-decoration: underline; }
+    /* Markdown styles inside bubbles */
+    .chat-messages .message-content h1,
+    .chat-messages .message-content h2,
+    .chat-messages .message-content h3 {
+        margin: 6px 0 4px;
+    }
+    .chat-messages .message-content p {
+        margin: 6px 0;
+    }
+    .chat-messages .message-content ul,
+    .chat-messages .message-content ol {
+        margin: 6px 0 6px 18px;
+    }
+    .chat-messages .message-content code {
+        background: #f6f8fa;
+        padding: 0 3px;
+        border-radius: 4px;
+    }
+    .chat-messages .message-content pre {
+        background: #f6f8fa;
+        padding: 8px;
+        border-radius: 6px;
+        overflow-x: auto;
+    }
+    .chat-messages .message-content a {
+        color: #0d6efd;
+        text-decoration: underline;
+    }
 
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
+    @keyframes spin {
+        0% {
+            transform: rotate(0deg);
+        }
+        100% {
+            transform: rotate(360deg);
+        }
+    }
 
-/* Chat input disabled state */
-.chat-input-container.loading input {
-    opacity: 0.6;
-    pointer-events: none;
-}
+    /* Chat input disabled state */
+    .chat-input-container.loading input {
+        opacity: 0.6;
+        pointer-events: none;
+    }
 
-.chat-input-container.loading button {
-    opacity: 0.6;
-    pointer-events: none;
-}
+    .chat-input-container.loading button {
+        opacity: 0.6;
+        pointer-events: none;
+    }
 </style>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('✓ DOMContentLoaded event fired');
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('✓ DOMContentLoaded event fired');
 
-    // デバッグ: 全体的な要素確認
-    const allForms = document.querySelectorAll('form');
-    console.log('✓ ページ内のフォーム数:', allForms.length);
+        // デバッグ: 全体的な要素確認
+        const allForms = document.querySelectorAll('form');
+        console.log('✓ ページ内のフォーム数:', allForms.length);
 
-    const allButtons = document.querySelectorAll('button');
-    console.log('✓ ページ内のボタン数:', allButtons.length);
+        const allButtons = document.querySelectorAll('button');
+        console.log('✓ ページ内のボタン数:', allButtons.length);
 
-    allButtons.forEach((btn, index) => {
-        console.log(`  ボタン${index}: id="${btn.id}", type="${btn.type}", text="${btn.textContent.trim()}"`);
-    });
+        allButtons.forEach((btn, index) => {
+            console.log(`  ボタン${index}: id="${btn.id}", type="${btn.type}", text="${btn.textContent.trim()}"`);
+        });
 
-    let currentPhase = 0;
-    let initialDecisionData = null;
-    let botOpinions = [];
-    const criteriaOrder = {{ info.criteria | tojson }}; // 表示順序を固定
+        let currentPhase = 0;
+        let initialDecisionData = null;
+        let botOpinions = [];
+        const criteriaOrder = {{ info.criteria | tojson }}; // 表示順序を固定
     let conversationCount = 0;
 
-    // --- Chat message rendering helpers (newline + lightweight Markdown) ---
-    function escapeHtml(str) {
-        return str
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/\"/g, '&quot;')
-            .replace(/'/g, '&#39;');
+    // 表示名のマッピング（UI文言の整合）
+    function displayName(c) {
+        return c === '志望動機・フィット' ? '学歴・所属' : c;
     }
 
-    function renderMarkdown(src) {
-        if (!src) return '';
-        // Preserve code blocks first
-        const blocks = [];
-        let text = src.replace(/```([\s\S]*?)```/g, function(_, code) {
-            blocks.push('<pre><code>' + escapeHtml(code.trim()) + '</code></pre>');
-            return '@@BLOCK' + (blocks.length - 1) + '@@';
-        });
-
-        text = escapeHtml(text);
-
-        // Inline code
-        text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
-        // Links [text](url)
-        text = text.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
-        // Bold/Italic (process bold first)
-        text = text.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-        text = text.replace(/\*([^*]+)\*/g, '<em>$1</em>');
-
-        // Headings (at line starts)
-        text = text.replace(/^###\s+(.+)$/gm, '<h3>$1</h3>')
-                   .replace(/^##\s+(.+)$/gm, '<h2>$1</h2>')
-                   .replace(/^#\s+(.+)$/gm, '<h1>$1</h1>');
-
-        // Lists
-        text = text.replace(/(^|\n)(?:\s*[-\*]\s+.+(?:\n\s*[-\*]\s+.+)*)/g, function(m) {
-            var items = m.trim().split(/\n/).map(function(line){ return line.replace(/^\s*[-\*]\s+/, ''); }).map(function(li){ return '<li>' + li + '</li>'; }).join('');
-            return '\n<ul>' + items + '</ul>';
-        });
-        text = text.replace(/(^|\n)(?:\s*\d+\.\s+.+(?:\n\s*\d+\.\s+.+)*)/g, function(m) {
-            var items = m.trim().split(/\n/).map(function(line){ return line.replace(/^\s*\d+\.\s+/, ''); }).map(function(li){ return '<li>' + li + '</li>'; }).join('');
-            return '\n<ol>' + items + '</ol>';
-        });
-
-        // Paragraphs and line breaks
-        var parts = text.split(/\n\n+/).map(function(p){ return '<p>' + p.replace(/\n/g, '<br>') + '</p>'; });
-        var html = parts.join('');
-
-        // Restore code blocks
-        html = html.replace(/@@BLOCK(\d+)@@/g, function(_, i){ return blocks[Number(i)] || ''; });
-        return html;
-    }
-
-    // 動的ボット意見生成関数
-    function generateBotOpinions(userDecision, userWeights, criteriaList) {
-        const trial = {{ trial }};
-        const botOpinions = [];
-        
-        // ランダムな重みを生成する関数（10%刻み、合計100%）
-        function generateRandomWeights(criteriaList) {
-            const numCriteria = criteriaList.length;
-            let weights = {};
-            let remaining = 100;
-            
-            // 最後の基準以外はランダムに割り当て
-            for (let i = 0; i < numCriteria - 1; i++) {
-                const criterion = criteriaList[i];
-                const maxWeight = Math.min(remaining - (numCriteria - i - 1) * 10, 70); // 最低10%を他に残す
-                const minWeight = Math.max(10, remaining - (numCriteria - i - 1) * 70); // 最低10%は割り当て
-                const weight = Math.floor(Math.random() * ((maxWeight - minWeight) / 10 + 1)) * 10 + minWeight;
-                weights[criterion] = weight;
-                remaining -= weight;
-            }
-            
-            // 最後の基準には残りを割り当て
-            weights[criteriaList[numCriteria - 1]] = remaining;
-            
-            return weights;
+        // --- Chat message rendering helpers (newline + lightweight Markdown) ---
+        function escapeHtml(str) {
+            return str
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/\"/g, '&quot;')
+                .replace(/'/g, '&#39;');
         }
-        
-        // 練習セッションの場合は完全ランダム、本番セッションの場合はユーザーと反対
-        function getBotDecision() {
+
+        function renderMarkdown(src) {
+            if (!src) return '';
+            // Preserve code blocks first
+            const blocks = [];
+            let text = src.replace(/```([\s\S]*?)```/g, function(_, code) {
+                blocks.push('<pre><code>' + escapeHtml(code.trim()) + '</code></pre>');
+                return '@@BLOCK' + (blocks.length - 1) + '@@';
+            });
+
+            text = escapeHtml(text);
+
+            // Inline code
+            text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
+            // Links [text](url)
+            text = text.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+            // Bold/Italic (process bold first)
+            text = text.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+            text = text.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+
+            // Headings (at line starts)
+            text = text.replace(/^###\s+(.+)$/gm, '<h3>$1</h3>')
+                       .replace(/^##\s+(.+)$/gm, '<h2>$1</h2>')
+                       .replace(/^#\s+(.+)$/gm, '<h1>$1</h1>');
+
+            // Lists
+            text = text.replace(/(^|\n)(?:\s*[-\*]\s+.+(?:\n\s*[-\*]\s+.+)*)/g, function(m) {
+                var items = m.trim().split(/\n/).map(function(line){ return line.replace(/^\s*[-\*]\s+/, ''); }).map(function(li){ return '<li>' + li + '</li>'; }).join('');
+                return '\n<ul>' + items + '</ul>';
+            });
+            text = text.replace(/(^|\n)(?:\s*\d+\.\s+.+(?:\n\s*\d+\.\s+.+)*)/g, function(m) {
+                var items = m.trim().split(/\n/).map(function(line){ return line.replace(/^\s*\d+\.\s+/, ''); }).map(function(li){ return '<li>' + li + '</li>'; }).join('');
+                return '\n<ol>' + items + '</ol>';
+            });
+
+            // Paragraphs and line breaks
+            var parts = text.split(/\n\n+/).map(function(p){ return '<p>' + p.replace(/\n/g, '<br>') + '</p>'; });
+            var html = parts.join('');
+
+            // Restore code blocks
+            html = html.replace(/@@BLOCK(\d+)@@/g, function(_, i){ return blocks[Number(i)] || ''; });
+            return html;
+        }
+
+        // 動的ボット意見生成関数
+        function generateBotOpinions(userDecision, userWeights, criteriaList) {
+            const trial = {{ trial }};
+            const botOpinions = [];
+
+            // ランダムな重みを生成する関数（10%刻み、合計100%）
+            function generateRandomWeights(criteriaList) {
+                const numCriteria = criteriaList.length;
+                let weights = {};
+                let remaining = 100;
+
+                // 最後の基準以外はランダムに割り当て
+                for (let i = 0; i < numCriteria - 1; i++) {
+                    const criterion = criteriaList[i];
+                    const maxWeight = Math.min(remaining - (numCriteria - i - 1) * 10, 70); // 最低10%を他に残す
+                    const minWeight = Math.max(10, remaining - (numCriteria - i - 1) * 70); // 最低10%は割り当て
+                    const weight = Math.floor(Math.random() * ((maxWeight - minWeight) / 10 + 1)) * 10 + minWeight;
+                    weights[criterion] = weight;
+                    remaining -= weight;
+                }
+
+                // 最後の基準には残りを割り当て
+                weights[criteriaList[numCriteria - 1]] = remaining;
+
+                return weights;
+            }
+
+            // 練習セッションの場合は完全ランダム、本番セッションの場合はユーザーと反対
+            function getBotDecision() {
+                if (trial === 1) {
+                    // 練習セッション: 完全ランダム
+                    return Math.random() < 0.5 ? '一次通過' : '見送り';
+                } else {
+                    // 本番セッション: ユーザーと反対
+                    return userDecision === '一次通過' ? '見送り' : '一次通過';
+                }
+            }
+
+            // AI3名の意見を生成（練習では2-2を避ける）
+            const decisions = [];
+
             if (trial === 1) {
-                // 練習セッション: 完全ランダム
-                return Math.random() < 0.5 ? '合格' : '不合格';
-            } else {
-                // 本番セッション: ユーザーと反対
-                return userDecision === '合格' ? '不合格' : '合格';
-            }
-        }
-        
-        // 参加者3名の意見を生成（練習では2-2を避ける）
-        const decisions = [];
-        
-        if (trial === 1) {
-            // 練習: 2名をランダムに決定
-            decisions.push(getBotDecision());
-            decisions.push(getBotDecision());
-            
-            // 3名目は2-2を避けるよう調整
-            const userChoice = userDecision;
-            const userCount = userChoice === '合格' ? 1 : 0;
-            const participantPassCount = decisions.filter(d => d === '合格').length;
-            const totalPassCount = userCount + participantPassCount;
-            
-            if (totalPassCount === 2) {
-                // 2-2になってしまうので、3名目で調整
-                decisions.push(userChoice === '合格' ? '不合格' : '合格');
-            } else {
-                // 2-2にならないので、3名目はランダム
+                // 練習: 2名をランダムに決定
                 decisions.push(getBotDecision());
+                decisions.push(getBotDecision());
+
+                // 3名目は2-2を避けるよう調整
+                const userChoice = userDecision;
+                const userCount = userChoice === '一次通過' ? 1 : 0;
+                const participantPassCount = decisions.filter(d => d === '一次通過').length;
+                const totalPassCount = userCount + participantPassCount;
+
+                if (totalPassCount === 2) {
+                    // 2-2になってしまうので、3名目で調整
+                    decisions.push(userChoice === '一次通過' ? '見送り' : '一次通過');
+                } else {
+                    // 2-2にならないので、3名目はランダム
+                    decisions.push(getBotDecision());
+                }
+            } else {
+                // 本番: 全員ユーザーの反対
+                const opposite = userDecision === '一次通過' ? '見送り' : '一次通過';
+                decisions.push(opposite, opposite, opposite);
             }
-        } else {
-            // 本番: 全員ユーザーの反対
-            const opposite = userDecision === '合格' ? '不合格' : '合格';
-            decisions.push(opposite, opposite, opposite);
-        }
-        
-        // 参加者1-3の生成
-        for (let i = 0; i < 3; i++) {
-            botOpinions.push({
-                bot_id: i,
-                decision: decisions[i],
-                weights: generateRandomWeights(criteriaList)
-            });
-        }
-        
-        return botOpinions;
-    }
 
-    // 重要度スライダー関数
-    function setupWeightSliders(containerSelector) {
-        const container = document.querySelector(containerSelector);
-        const weightSliders = container.querySelectorAll('.weight-slider');
-        const totalWeightDisplay = container.querySelector('.total-weight span');
+            // AI1-3の生成
+            for (let i = 0; i < 3; i++) {
+                botOpinions.push({
+                    bot_id: i,
+                    decision: decisions[i],
+                    weights: generateRandomWeights(criteriaList)
+                });
+            }
 
-        function updateWeights() {
-            let total = 0;
-            const weights = [];
+            return botOpinions;
+        }
+
+        // 重要度スライダー関数
+        function setupWeightSliders(containerSelector) {
+            const container = document.querySelector(containerSelector);
+            const weightSliders = container.querySelectorAll('.weight-slider');
+            const totalWeightDisplay = container.querySelector('.total-weight span');
+
+            function updateWeights() {
+                let total = 0;
+                const weights = [];
+                weightSliders.forEach(slider => {
+                    const value = parseInt(slider.value);
+                    total += value;
+                    weights.push(value);
+                    document.getElementById(slider.id + '-value').textContent = value;
+                });
+
+                totalWeightDisplay.textContent = total;
+                totalWeightDisplay.className = total === 100 ? 'correct' : 'incorrect';
+
+                // 同一重み警告の表示/非表示
+                const allSame = weights.every(w => w === weights[0]);
+                const warningElement = container.querySelector('#equal-weights-warning');
+                if (warningElement) {
+                    warningElement.style.display = allSame ? 'block' : 'none';
+                }
+            }
+
             weightSliders.forEach(slider => {
-                const value = parseInt(slider.value);
-                total += value;
-                weights.push(value);
-                document.getElementById(slider.id + '-value').textContent = value;
+                slider.addEventListener('input', updateWeights);
             });
 
-            totalWeightDisplay.textContent = total;
-            totalWeightDisplay.className = total === 100 ? 'correct' : 'incorrect';
-
-            // 同一重み警告の表示/非表示
-            const allSame = weights.every(w => w === weights[0]);
-            const warningElement = container.querySelector('#equal-weights-warning');
-            if (warningElement) {
-                warningElement.style.display = allSame ? 'block' : 'none';
-            }
+            updateWeights();
+            return { weightSliders, updateWeights };
         }
 
-        weightSliders.forEach(slider => {
-            slider.addEventListener('input', updateWeights);
-        });
+        // main.jsの重複する重み計算を無効化
+        window.updateWeightTotal = function() {
+            // experience.html内の重み管理ロジックを使用するため、main.jsの関数を無効化
+        };
 
-        updateWeights();
-        return { weightSliders, updateWeights };
-    }
+        // 初期重要度スライダー設定
+        const initialWeights = setupWeightSliders('[data-phase="0"]');
 
-    // main.jsの重複する重み計算を無効化
-    window.updateWeightTotal = function() {
-        // experience.html内の重み管理ロジックを使用するため、main.jsの関数を無効化
-    };
+        // フェーズ切り替え
+        function showPhase(phaseIndex) {
+            document.querySelectorAll('.phase-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.querySelectorAll('.step').forEach(step => {
+                step.classList.remove('active');
+            });
 
-    // 初期重要度スライダー設定
-    const initialWeights = setupWeightSliders('[data-phase="0"]');
+            document.querySelector(`[data-phase="${phaseIndex}"]`).classList.add('active');
+            document.querySelector(`[data-step="${phaseIndex}"]`).classList.add('active');
 
-    // フェーズ切り替え
-    function showPhase(phaseIndex) {
-        document.querySelectorAll('.phase-content').forEach(content => {
-            content.classList.remove('active');
-        });
-        document.querySelectorAll('.step').forEach(step => {
-            step.classList.remove('active');
-        });
-
-        document.querySelector(`[data-phase="${phaseIndex}"]`).classList.add('active');
-        document.querySelector(`[data-step="${phaseIndex}"]`).classList.add('active');
-
-        currentPhase = phaseIndex;
+            currentPhase = phaseIndex;
 
         if (phaseIndex === 2) {
             // AIチャットフェーズ開始時に手続き説明を取得
             initializeChat();
-        } else if (phaseIndex === 3) {
-            // 最終決定フェーズの重要度スライダー設定
+            // 見出し位置へスクロール（チャットの途中から始まらないように）
             setTimeout(() => {
-                const finalWeights = setupWeightSliders('[data-phase="3"]');
-                // 初期値を設定
-                if (initialDecisionData) {
-                    Object.entries(initialDecisionData.weights).forEach(([criterion, weight]) => {
-                        const slider = document.getElementById(`final_${criterion}`);
-                        if (slider) {
-                            slider.value = weight;
-                        }
-                    });
-                    finalWeights.updateWeights();
-
-                    // 初回の判断を最終判断のデフォルトに設定
-                    try {
-                        const val = initialDecisionData.decision;
-                        const radio = document.querySelector(`input[name="final_decision"][value="${val}"]`);
-                        if (radio) radio.checked = true;
-                    } catch (e) {
-                        console.warn('最終判断ラジオの初期化に失敗:', e);
-                    }
+                const anchor = document.getElementById('ai-chat-title');
+                if (anchor && typeof anchor.scrollIntoView === 'function') {
+                    anchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }
-                // 初回の判断サマリーを更新
-                try { updateInitialDecisionSummary(); } catch (e) { console.warn('初回判断サマリー更新失敗', e); }
-            }, 100);
-        }
-    }
+            }, 50);
+        } else if (phaseIndex === 3) {
+                // 最終決定フェーズの重要度スライダー設定
+                setTimeout(() => {
+                    const finalWeights = setupWeightSliders('[data-phase="3"]');
+                    // 初期値を設定
+                    if (initialDecisionData) {
+                        Object.entries(initialDecisionData.weights).forEach(([criterion, weight]) => {
+                            const slider = document.getElementById(`final_${criterion}`);
+                            if (slider) {
+                                slider.value = weight;
+                            }
+                        });
+                        finalWeights.updateWeights();
 
-    window.nextPhase = function() {
-        if (currentPhase < 3) {
-            showPhase(currentPhase + 1);
-        }
-    };
-
-    // フェーズ1: 初期決定ボタン
-    const confirmBtn = document.getElementById('confirmDecisionBtn');
-    const initialForm = document.getElementById('initialDecisionForm');
-
-    if (!confirmBtn || !initialForm) {
-        console.error('confirmDecisionBtn または initialDecisionForm が見つかりません');
-        return;
-    }
-    console.log('✓ 意見確定ボタンのイベントリスナーを設定');
-
-    confirmBtn.addEventListener('click', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        console.log('✓ 意見確定ボタンがクリックされました');
-        console.log('  イベント:', e);
-        console.log('  フォーム要素:', initialForm);
-
-        // 判定の選択をチェック
-        const decisionSelected = document.querySelector('input[name="decision"]:checked');
-        if (!decisionSelected) {
-            alert('合格または不合格を選択してください。');
-            return;
-        }
-
-        const total = parseInt(document.getElementById('total-weight').textContent);
-        if (total !== 100) {
-            alert('重要度の合計が100%になるよう調整してください。現在の合計: ' + total + '%');
-            return;
-        }
-
-        // 全て同じ重みかチェック
-        const weightSliders = document.querySelectorAll('.weight-slider');
-        const weights = Array.from(weightSliders).map(slider => parseInt(slider.value));
-        const allSame = weights.every(w => w === weights[0]);
-
-        if (allSame) {
-            const confirmed = confirm('全ての基準が同じ重みになっています。このまま進んでもよろしいですか？');
-            if (!confirmed) {
-                return;
+                        // 初回の判断を最終判断のデフォルトに設定
+                        try {
+                            const val = initialDecisionData.decision;
+                            const radio = document.querySelector(`input[name="final_decision"][value="${val}"]`);
+                            if (radio) radio.checked = true;
+                        } catch (e) {
+                            console.warn('最終判断ラジオの初期化に失敗:', e);
+                        }
+                    }
+                    // 初回の判断サマリーを更新
+                    try { updateInitialDecisionSummary(); } catch (e) { console.warn('初回判断サマリー更新失敗', e); }
+                }, 100);
             }
         }
 
-        const formData = new FormData(initialForm);
-
-        console.log('フォームデータ内容確認:');
-        for (let [key, value] of formData.entries()) {
-            console.log('  ' + key + ': ' + value);
-        }
-
-        const data = {
-            trial: parseInt('{{ trial }}'),
-            decision: formData.get('decision'),
-            weights: {},
-            reasoning: formData.get('reasoning') || '',
-            timestamp: new Date().toISOString()
+        window.nextPhase = function() {
+            if (currentPhase < 3) {
+                showPhase(currentPhase + 1);
+            }
         };
 
-        // 基準の重みを取得
-        const criteria = {{ info.criteria | tojson }};
-        criteria.forEach(criterion => {
-            const criterionValue = parseInt(formData.get(criterion));
-            data.weights[criterion] = isNaN(criterionValue) ? 0 : criterionValue;
-            console.log('重み - ' + criterion + ':', data.weights[criterion]);
-        });
+        // フェーズ1: 初期決定ボタン
+        const confirmBtn = document.getElementById('confirmDecisionBtn');
+        const initialForm = document.getElementById('initialDecisionForm');
 
-        initialDecisionData = data;
-        
-        console.log('意思決定データ送信:', data);
+        if (!confirmBtn || !initialForm) {
+            console.error('confirmDecisionBtn または initialDecisionForm が見つかりません');
+            return;
+        }
+        console.log('✓ 意見確定ボタンのイベントリスナーを設定');
 
-        fetch('/save_decision', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(data)
-        })
-        .then(response => {
-            console.log('レスポンスステータス:', response.status);
-            return response.json();
-        })
-        .then(result => {
-            console.log('サーバー応答:', result);
-            if (result.success) {
-                // サーバで確定した参加者意見を採用
-                if (Array.isArray(result.participant_opinions)) {
-                    botOpinions = result.participant_opinions;
-                }
-                console.log('確定された参加者意見:', botOpinions);
-                // 直接次のフェーズへ進む
-                showPhase1Content();
-                nextPhase();
-            } else if (result.error) {
-                alert('エラー: ' + result.error);
-            } else {
-                alert('予期しない応答形式です。');
-                console.error('Unexpected response:', result);
+        confirmBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('✓ 意見確定ボタンがクリックされました');
+            console.log('  イベント:', e);
+            console.log('  フォーム要素:', initialForm);
+
+            // 判定の選択をチェック
+            const decisionSelected = document.querySelector('input[name="decision"]:checked');
+            if (!decisionSelected) {
+                alert('一次通過または見送りを選択してください。');
+                return;
             }
-        })
-        .catch(error => {
-            console.error('Fetch エラー:', error);
-            alert('ネットワークエラーが発生しました: ' + error.message);
+
+            const total = parseInt(document.getElementById('total-weight').textContent);
+            if (total !== 100) {
+                alert('重要度の合計が100%になるよう調整してください。現在の合計: ' + total + '%');
+                return;
+            }
+
+            // 全て同じ重みかチェック
+            const weightSliders = document.querySelectorAll('.weight-slider');
+            const weights = Array.from(weightSliders).map(slider => parseInt(slider.value));
+            const allSame = weights.every(w => w === weights[0]);
+
+            if (allSame) {
+                const confirmed = confirm('全ての基準が同じ重みになっています。このまま進んでもよろしいですか？');
+                if (!confirmed) {
+                    return;
+                }
+            }
+
+            const formData = new FormData(initialForm);
+
+            console.log('フォームデータ内容確認:');
+            for (let [key, value] of formData.entries()) {
+                console.log('  ' + key + ': ' + value);
+            }
+
+            const data = {
+                trial: parseInt('{{ trial }}'),
+                decision: formData.get('decision'),
+                weights: {},
+                reasoning: formData.get('reasoning') || '',
+                timestamp: new Date().toISOString()
+            };
+
+            // 基準の重みを取得
+            const criteria = {{ info.criteria | tojson }};
+            criteria.forEach(criterion => {
+                const criterionValue = parseInt(formData.get(criterion));
+                data.weights[criterion] = isNaN(criterionValue) ? 0 : criterionValue;
+                console.log('重み - ' + criterion + ':', data.weights[criterion]);
+            });
+
+            initialDecisionData = data;
+
+            console.log('意思決定データ送信:', data);
+
+            fetch('/save_decision', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => {
+                console.log('レスポンスステータス:', response.status);
+                return response.json();
+            })
+            .then(result => {
+                console.log('サーバー応答:', result);
+                if (result.success) {
+                    // サーバで確定したAI意見を採用
+                    if (Array.isArray(result.participant_opinions)) {
+                        botOpinions = result.participant_opinions;
+                    }
+                    console.log('確定されたAI意見:', botOpinions);
+                    // 直接次のフェーズへ進む
+                    showPhase1Content();
+                    nextPhase();
+                } else if (result.error) {
+                    alert('エラー: ' + result.error);
+                } else {
+                    alert('予期しない応答形式です。');
+                    console.error('Unexpected response:', result);
+                }
+            })
+            .catch(error => {
+                console.error('Fetch エラー:', error);
+                alert('ネットワークエラーが発生しました: ' + error.message);
+            });
         });
-    });
 
-    // フェーズ2表示内容更新
-    function showPhase1Content() {
-        // 自分の意見表示
-        const myOpinionSummary = document.getElementById('myOpinionSummary');
-        const myDecisionText = initialDecisionData.decision; // 直接表示（すでに「合格」「不合格」）
-        const myDecisionClass = initialDecisionData.decision === '合格' ? 'pass' : 'fail';
-        
-        myOpinionSummary.innerHTML = `
-            <div class="decision-badge ${myDecisionClass}">
-                ${myDecisionText}
-            </div>
-            <div class="weight-bars">
-                ${Object.entries(initialDecisionData.weights).map(([criterion, weight]) => `
-                    <div class="weight-bar-small">
-                        <span class="criterion">${criterion}:</span>
-                        <div class="bar">
-                            <div class="fill" style="width: ${weight}%"></div>
-                        </div>
-                        <span class="value">${weight}%</span>
-                    </div>
-                `).join('')}
-            </div>
-        `;
+        // フェーズ2表示内容更新
+        function showPhase1Content() {
+            // 自分の意見表示
+            const myOpinionSummary = document.getElementById('myOpinionSummary');
+            const myDecisionText = initialDecisionData.decision; // 直接表示（すでに「一次通過」「見送り」）
+            const myDecisionClass = initialDecisionData.decision === '一次通過' ? 'pass' : 'fail';
 
-        // 他の参加者の意見表示
-        const othersOpinions = document.getElementById('othersOpinions');
-        othersOpinions.innerHTML = botOpinions.map(opinion => {
-            // 決定は既に合格/不合格の形式
-            const decisionText = opinion.decision;
-            const decisionClass = opinion.decision === '合格' ? 'pass' : 'fail';
-            
-            return `
-            <div class="opinion-card">
-                <h5>参加者 ${opinion.bot_id + 1}</h5>
-                <div class="decision-badge ${decisionClass}">
-                    ${decisionText}
-                </div>
-                <div class="weight-bars">
-                    ${criteriaOrder.map((criterion) => {
-                        const weight = opinion.weights[criterion] ?? 0;
-                        const roundedWeight = Math.round(weight / 10) * 10;
-                        return `
-                        <div class="weight-bar-small">
-                            <span class="criterion">${criterion}:</span>
-                            <div class="bar">
-                                <div class="fill" style="width: ${roundedWeight}%"></div>
-                            </div>
-                            <span class="value">${roundedWeight}%</span>
-                        </div>
-                        `;
-                    }).join('')}
-                </div>
-            </div>
-            `;
-        }).join('');
-
-        // フェーズ3の比較表示も更新
-        updateComparisonView();
-    }
-
-    function updateComparisonView() {
-        const comparisonView = document.getElementById('comparisonView');
-        
-        // 自分の決定を合格/不合格に変換
-        const myDecisionText = initialDecisionData.decision; // 直接表示（すでに「合格」「不合格」）
-        const myDecisionClass = initialDecisionData.decision === '合格' ? 'pass' : 'fail';
-        
-        comparisonView.innerHTML = `
-            <div class="comparison-item">
-                <h5>あなたの意見</h5>
+            myOpinionSummary.innerHTML = `
                 <div class="decision-badge ${myDecisionClass}">
                     ${myDecisionText}
                 </div>
-                <div class="weight-bars-mini">
-                    ${criteriaOrder.map((criterion) => {
-                        const weight = initialDecisionData.weights[criterion] ?? 0;
-                        return `
-                        <div class="weight-bar-mini">
-                            <span class="criterion-mini">${criterion}:</span>
-                            <div class="bar-mini">
-                                <div class="fill-mini" style="width: ${weight}%"></div>
+                <div class="weight-bars">
+                    ${Object.entries(initialDecisionData.weights).map(([criterion, weight]) => `
+                        <div class="weight-bar-small">
+                            <span class="criterion">${displayName(criterion)}:</span>
+                            <div class="bar">
+                                <div class="fill" style="width: ${weight}%"></div>
                             </div>
-                            <span class="value-mini">${weight}%</span>
+                            <span class="value">${weight}%</span>
                         </div>
-                        `;
-                    }).join('')}
+                    `).join('')}
                 </div>
-            </div>
-            ${botOpinions.map(opinion => {
+            `;
+
+            // 他のAIの意見表示
+            const othersOpinions = document.getElementById('othersOpinions');
+            othersOpinions.innerHTML = botOpinions.map(opinion => {
+                // 決定は既に一次通過/見送りの形式
                 const decisionText = opinion.decision;
-                const decisionClass = opinion.decision === '合格' ? 'pass' : 'fail';
+                const decisionClass = opinion.decision === '一次通過' ? 'pass' : 'fail';
+
                 return `
-                <div class="comparison-item">
-                    <h5>参加者 ${opinion.bot_id + 1}</h5>
+                <div class="opinion-card">
+                    <h5>AI ${opinion.bot_id + 1}</h5>
                     <div class="decision-badge ${decisionClass}">
                         ${decisionText}
                     </div>
-                    <div class="weight-bars-mini">
+                    <div class="weight-bars">
                         ${criteriaOrder.map((criterion) => {
                             const weight = opinion.weights[criterion] ?? 0;
                             const roundedWeight = Math.round(weight / 10) * 10;
                             return `
-                            <div class="weight-bar-mini">
-                                <span class="criterion-mini">${criterion}:</span>
-                                <div class="bar-mini">
-                                    <div class="fill-mini" style="width: ${roundedWeight}%"></div>
+                            <div class="weight-bar-small">
+                                <span class="criterion">${displayName(criterion)}:</span>
+                                <div class="bar">
+                                    <div class="fill" style="width: ${roundedWeight}%"></div>
                                 </div>
-                                <span class="value-mini">${roundedWeight}%</span>
+                                <span class="value">${roundedWeight}%</span>
                             </div>
                             `;
                         }).join('')}
                     </div>
                 </div>
                 `;
-            }).join('')}
-        `;
-    }
+            }).join('');
 
-    // チャット初期化関数（Streamlit同等: 初期2メッセージを固定で表示）
-    function initializeChat() {
-        // 比較サイドバーを更新
-        try { updateComparisonView(); } catch (e) {}
-        showLoading(true);
-        const payload = {
-            decision: initialDecisionData ? initialDecisionData.decision : '未定',
-            weights: initialDecisionData ? initialDecisionData.weights : {}
-        };
-        fetch('/setup_chat', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        })
-        .then(res => res.json())
-        .then(data => {
-            showLoading(false);
-            const chatMessages = document.getElementById('chatMessages');
-            chatMessages.innerHTML = '';
-            conversationCount = 0;
-            document.getElementById('messageCount').textContent = '0';
-            if (data.success && Array.isArray(data.messages)) {
-                data.messages.forEach(m => addMessage(m.content, false));
-            } else {
-                addMessage('初期メッセージの準備に失敗しました。', false);
-            }
-        })
-        .catch(err => {
-            console.error('setup_chat エラー:', err);
-            showLoading(false);
-            addMessage('申し訳ございません。初期化に失敗しました。', false);
-        });
-    }
+            // フェーズ3の比較表示も更新
+            updateComparisonView();
+        }
 
-    // チャット機能
-    const chatMessages = document.getElementById('chatMessages');
-    const chatInput = document.getElementById('chatInput');
-    const sendButton = document.getElementById('sendButton');
-    const messageCount = document.getElementById('messageCount');
-    const finishChat = document.getElementById('finishChat');
+        function updateComparisonView() {
+            const comparisonView = document.getElementById('comparisonView');
 
-    function addMessage(content, isUser = false) {
-        const messageDiv = document.createElement('div');
-        messageDiv.className = isUser ? 'user-message' : 'ai-message';
+            // 自分の決定を合格/不合格に変換
+            const myDecisionText = initialDecisionData.decision; // 直接表示（すでに「一次通過」「見送り」）
+            const myDecisionClass = initialDecisionData.decision === '一次通過' ? 'pass' : 'fail';
 
-        const contentDiv = document.createElement('div');
-        contentDiv.className = 'message-content';
-        contentDiv.innerHTML = renderMarkdown(content);
+            comparisonView.innerHTML = `
+                <div class="comparison-item">
+                    <h5>あなたの意見</h5>
+                    <div class="decision-badge ${myDecisionClass}">
+                        ${myDecisionText}
+                    </div>
+                    <div class="weight-bars-mini">
+                        ${criteriaOrder.map((criterion) => {
+                            const weight = initialDecisionData.weights[criterion] ?? 0;
+                            return `
+                            <div class="weight-bar-mini">
+                                <span class="criterion-mini">${displayName(criterion)}:</span>
+                                <div class="bar-mini">
+                                    <div class="fill-mini" style="width: ${weight}%"></div>
+                                </div>
+                                <span class="value-mini">${weight}%</span>
+                            </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+                ${botOpinions.map(opinion => {
+                    const decisionText = opinion.decision;
+                    const decisionClass = opinion.decision === '一次通過' ? 'pass' : 'fail';
+                    return `
+                    <div class="comparison-item">
+                        <h5>AI ${opinion.bot_id + 1}</h5>
+                        <div class="decision-badge ${decisionClass}">
+                            ${decisionText}
+                        </div>
+                        <div class="weight-bars-mini">
+                            ${criteriaOrder.map((criterion) => {
+                                const weight = opinion.weights[criterion] ?? 0;
+                                const roundedWeight = Math.round(weight / 10) * 10;
+                                return `
+                                <div class="weight-bar-mini">
+                                    <span class="criterion-mini">${displayName(criterion)}:</span>
+                                    <div class="bar-mini">
+                                        <div class="fill-mini" style="width: ${roundedWeight}%"></div>
+                                    </div>
+                                    <span class="value-mini">${roundedWeight}%</span>
+                                </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                    `;
+                }).join('')}
+            `;
+        }
 
-        messageDiv.appendChild(contentDiv);
-        chatMessages.appendChild(messageDiv);
-
-        chatMessages.scrollTop = chatMessages.scrollHeight;
-    }
-
-    function sendMessage() {
-        const message = chatInput.value.trim();
-        if (!message) return;
-
-        addMessage(message, true);
-        chatInput.value = '';
-
-        // ローディング表示開始
-        showLoading(true);
-
-        fetch('/ai_chat', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                message: message,
-                decision: initialDecisionData.decision,
-                conversation_count: conversationCount
+        // チャット初期化関数（Streamlit同等: 初期2メッセージを固定で表示）
+        function initializeChat() {
+            // 比較サイドバーを更新
+            try { updateComparisonView(); } catch (e) {}
+            showLoading(true);
+            const payload = {
+                decision: initialDecisionData ? initialDecisionData.decision : '未定',
+                weights: initialDecisionData ? initialDecisionData.weights : {}
+            };
+            fetch('/setup_chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
             })
-        })
-        .then(response => response.json())
-        .then(data => {
-            // ローディング表示終了
-            showLoading(false);
-
-            setTimeout(() => {
-                const aiMsg = data.message || data.response || '...';
-                addMessage(aiMsg, false);
-                conversationCount++;
-                messageCount.textContent = conversationCount;
-
-                if (conversationCount >= 4) {
-                    finishChat.style.display = 'block';
-                    // 入力は継続可能（最低4回の達成のみ）
+            .then(res => res.json())
+            .then(data => {
+                showLoading(false);
+                const chatMessages = document.getElementById('chatMessages');
+                chatMessages.innerHTML = '';
+                conversationCount = 0;
+                document.getElementById('messageCount').textContent = '0';
+                if (data.success && Array.isArray(data.messages)) {
+                    data.messages.forEach(m => addMessage(m.content, false));
+                } else {
+                    addMessage('初期メッセージの準備に失敗しました。', false);
                 }
-            }, 500);
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            showLoading(false);
-            addMessage('申し訳ございません。エラーが発生しました。', false);
-        });
-    }
-
-    // ローディング表示制御関数
-    function showLoading(show) {
-        const loadingIndicator = document.getElementById('loadingIndicator');
-        const chatInputContainer = document.querySelector('.chat-input-container');
-
-        if (show) {
-            loadingIndicator.style.display = 'flex';
-            chatInputContainer.classList.add('loading');
-            sendButton.disabled = true;
-            chatInput.disabled = true;
-        } else {
-            loadingIndicator.style.display = 'none';
-            chatInputContainer.classList.remove('loading');
-            sendButton.disabled = false;
-            chatInput.disabled = false;
-        }
-    }
-
-    if (sendButton) {
-        sendButton.addEventListener('click', sendMessage);
-    }
-
-    if (chatInput) {
-        chatInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                sendMessage();
-            }
-        });
-    }
-
-    // 信頼度スライダー
-    const confidenceSlider = document.getElementById('confidence');
-    const confidenceValue = document.getElementById('confidence-value');
-
-    if (confidenceSlider) {
-        confidenceSlider.addEventListener('input', function() {
-            confidenceValue.textContent = this.value;
-        });
-    }
-
-    // 最終決定フォーム
-    document.getElementById('finalDecisionForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-
-        const total = parseInt(document.getElementById('final-total-weight').textContent);
-        if (total !== 100) {
-            alert('重要度の合計が100%になるよう調整してください。現在の合計: ' + total + '%');
-            return;
+            })
+            .catch(err => {
+                console.error('setup_chat エラー:', err);
+                showLoading(false);
+                addMessage('申し訳ございません。初期化に失敗しました。', false);
+            });
         }
 
-        const formData = new FormData(this);
-        const data = {
-            trial: parseInt('{{ trial }}'),
-            final_decision: formData.get('final_decision'),
-            final_weights: {},
-            change_reasoning: formData.get('change_reasoning') || '',
-            confidence: parseInt(formData.get('confidence')),
-            initial_decision: initialDecisionData,
-            timestamp: new Date().toISOString()
-        };
+        // チャット機能
+        const chatMessages = document.getElementById('chatMessages');
+        const chatInput = document.getElementById('chatInput');
+        const sendButton = document.getElementById('sendButton');
+        const messageCount = document.getElementById('messageCount');
+        const finishChat = document.getElementById('finishChat');
 
-        // 最終重みを取得
-        const finalCriteria = {{ info.criteria | tojson }};
-        finalCriteria.forEach(criterion => {
-            data.final_weights[criterion] = parseInt(formData.get('final_' + criterion));
-        });
+        function addMessage(content, isUser = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = isUser ? 'user-message' : 'ai-message';
 
-        console.log('最終決定データ送信:', data);
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            contentDiv.innerHTML = renderMarkdown(content);
 
-        fetch('/save_final_decision', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(data)
-        })
-        .then(response => {
-            console.log('最終決定レスポンスステータス:', response.status);
-            return response.json();
-        })
-        .then(result => {
-            console.log('最終決定サーバー応答:', result);
-            if (result.success && result.next) {
-                console.log('次のページへ遷移:', result.next);
-                window.location.href = result.next;
-            } else if (result.error) {
-                alert('エラー: ' + result.error);
+            messageDiv.appendChild(contentDiv);
+            chatMessages.appendChild(messageDiv);
+
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function sendMessage() {
+            const message = chatInput.value.trim();
+            if (!message) return;
+
+            addMessage(message, true);
+            chatInput.value = '';
+
+            // ローディング表示開始
+            showLoading(true);
+
+            fetch('/ai_chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    message: message,
+                    decision: initialDecisionData.decision,
+                    conversation_count: conversationCount
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // ローディング表示終了
+                showLoading(false);
+
+                setTimeout(() => {
+                    const aiMsg = data.message || data.response || '...';
+                    addMessage(aiMsg, false);
+                    conversationCount++;
+                    messageCount.textContent = conversationCount;
+
+                    if (conversationCount >= 4) {
+                        finishChat.style.display = 'block';
+                        // 入力は継続可能（最低4回の達成のみ）
+                    }
+                }, 500);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showLoading(false);
+                addMessage('申し訳ございません。エラーが発生しました。', false);
+            });
+        }
+
+        // ローディング表示制御関数
+        function showLoading(show) {
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            const chatInputContainer = document.querySelector('.chat-input-container');
+
+            if (show) {
+                loadingIndicator.style.display = 'flex';
+                chatInputContainer.classList.add('loading');
+                sendButton.disabled = true;
+                chatInput.disabled = true;
             } else {
-                alert('予期しない応答形式です。');
-                console.error('Unexpected response:', result);
+                loadingIndicator.style.display = 'none';
+                chatInputContainer.classList.remove('loading');
+                sendButton.disabled = false;
+                chatInput.disabled = false;
             }
-        })
-        .catch(error => {
-            console.error('最終決定送信エラー:', error);
-            alert('ネットワークエラーが発生しました: ' + error.message);
+        }
+
+        if (sendButton) {
+            sendButton.addEventListener('click', sendMessage);
+        }
+
+        if (chatInput) {
+            chatInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+        }
+
+        // 信頼度スライダー
+        const confidenceSlider = document.getElementById('confidence');
+        const confidenceValue = document.getElementById('confidence-value');
+
+        if (confidenceSlider) {
+            confidenceSlider.addEventListener('input', function() {
+                confidenceValue.textContent = this.value;
+            });
+        }
+
+        // 最終決定フォーム
+        document.getElementById('finalDecisionForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const total = parseInt(document.getElementById('final-total-weight').textContent);
+            if (total !== 100) {
+                alert('重要度の合計が100%になるよう調整してください。現在の合計: ' + total + '%');
+                return;
+            }
+
+            const formData = new FormData(this);
+            const data = {
+                trial: parseInt('{{ trial }}'),
+                final_decision: formData.get('final_decision'),
+                final_weights: {},
+                change_reasoning: formData.get('change_reasoning') || '',
+                confidence: parseInt(formData.get('confidence')),
+                initial_decision: initialDecisionData,
+                timestamp: new Date().toISOString()
+            };
+
+            // 最終重みを取得
+            const finalCriteria = {{ info.criteria | tojson }};
+            finalCriteria.forEach(criterion => {
+                data.final_weights[criterion] = parseInt(formData.get('final_' + criterion));
+            });
+
+            console.log('最終決定データ送信:', data);
+
+            fetch('/save_final_decision', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => {
+                console.log('最終決定レスポンスステータス:', response.status);
+                return response.json();
+            })
+            .then(result => {
+                console.log('最終決定サーバー応答:', result);
+                if (result.success && result.next) {
+                    console.log('次のページへ遷移:', result.next);
+                    window.location.href = result.next;
+                } else if (result.error) {
+                    alert('エラー: ' + result.error);
+                } else {
+                    alert('予期しない応答形式です。');
+                    console.error('Unexpected response:', result);
+                }
+            })
+            .catch(error => {
+                console.error('最終決定送信エラー:', error);
+                alert('ネットワークエラーが発生しました: ' + error.message);
+            });
+        });
+
+        // 初期決定表示更新（フェーズ4用）
+        function updateInitialDecisionSummary() {
+            if (initialDecisionData) {
+                const summary = document.getElementById('initialDecisionSummary');
+                if (summary) {
+                    const decisionClass = initialDecisionData.decision === '一次通過' ? 'pass' : 'fail';
+                    summary.innerHTML = `
+                        <div class="decision-badge ${decisionClass}">
+                            ${initialDecisionData.decision}
+                        </div>
+                        <div class="weight-summary">
+                            ${Object.entries(initialDecisionData.weights).map(([criterion, weight]) => `
+                                <span class="weight-item">${displayName(criterion)}: ${weight}%</span>
+                            `).join(', ')}
+                        </div>
+                    `;
+                }
+            }
+        }
+
+        // フェーズ変更時の処理
+        document.addEventListener('phaseChange', function(e) {
+            if (e.detail.phase === 3) {
+                updateInitialDecisionSummary();
+            }
         });
     });
-
-    // 初期決定表示更新（フェーズ4用）
-    function updateInitialDecisionSummary() {
-        if (initialDecisionData) {
-            const summary = document.getElementById('initialDecisionSummary');
-            if (summary) {
-                const decisionClass = initialDecisionData.decision === '合格' ? 'pass' : 'fail';
-                summary.innerHTML = `
-                    <div class="decision-badge ${decisionClass}">
-                        ${initialDecisionData.decision}
-                    </div>
-                    <div class="weight-summary">
-                        ${Object.entries(initialDecisionData.weights).map(([criterion, weight]) => `
-                            <span class="weight-item">${criterion}: ${weight}%</span>
-                        `).join(', ')}
-                    </div>
-                `;
-            }
-        }
-    }
-
-    // フェーズ変更時の処理
-    document.addEventListener('phaseChange', function(e) {
-        if (e.detail.phase === 3) {
-            updateInitialDecisionSummary();
-        }
-    });
-});
 </script>
 {% endblock %}
 <!--  --- Chat helpers duplicate (disabled) ---
@@ -1131,45 +1468,44 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 -->
 
-    function renderMarkdown(src) {
-        if (!src) return '';
-        // Preserve code blocks first
-        const blocks = [];
-        let text = src.replace(/```([\s\S]*?)```/g, (_, code) => {
-            blocks.push(`<pre><code>${escapeHtml(code.trim())}</code></pre>`);
-            return `@@BLOCK${blocks.length - 1}@@`;
-        });
-
-        text = escapeHtml(text);
-
-        // Inline code
-        text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
-        // Links [text](url)
-        text = text.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
-        // Bold/Italic (process bold first)
-        text = text.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-        text = text.replace(/\*([^*]+)\*/g, '<em>$1</em>');
-
-        // Headings (at line starts)
-        text = text.replace(/^###\s+(.+)$/gm, '<h3>$1</h3>')
-                   .replace(/^##\s+(.+)$/gm, '<h2>$1</h2>')
-                   .replace(/^#\s+(.+)$/gm, '<h1>$1</h1>');
-
-        // Lists
-        text = text.replace(/(^|\n)(?:\s*[-\*]\s+.+(?:\n\s*[-\*]\s+.+)*)/g, (m) => {
-            const items = m.trim().split(/\n/).map(line => line.replace(/^\s*[-\*]\s+/, '')).map(li => `<li>${li}</li>`).join('');
-            return `\n<ul>${items}</ul>`;
-        });
-        text = text.replace(/(^|\n)(?:\s*\d+\.\s+.+(?:\n\s*\d+\.\s+.+)*)/g, (m) => {
-            const items = m.trim().split(/\n/).map(line => line.replace(/^\s*\d+\.\s+/, '')).map(li => `<li>${li}</li>`).join('');
-            return `\n<ol>${items}</ol>`;
-        });
-
-        // Paragraphs and line breaks
-        const parts = text.split(/\n\n+/).map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`);
-        let html = parts.join('');
-
-        // Restore code blocks
-        html = html.replace(/@@BLOCK(\d+)@@/g, (_, i) => blocks[Number(i)] || '');
-        return html;
-    }
+function renderMarkdown(src) { if (!src) return ''; // Preserve code blocks
+first const blocks = []; let text = src.replace(/```([\s\S]*?)```/g, (_, code)
+=> { blocks.push(`
+<pre><code>${escapeHtml(code.trim())}</code></pre>
+`); return `@@BLOCK${blocks.length - 1}@@`; }); text = escapeHtml(text); //
+Inline code text = text.replace(/`([^`]+)`/g, '<code>$1</code>'); // Links
+[text](url) text = text.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a
+    href="$2"
+    target="_blank"
+    rel="noopener noreferrer"
+    >$1</a
+>'); // Bold/Italic (process bold first) text = text.replace(/\*\*([^*]+)\*\*/g,
+'<strong>$1</strong>'); text = text.replace(/\*([^*]+)\*/g, '<em>$1</em>'); //
+Headings (at line starts) text = text.replace(/^###\s+(.+)$/gm, '
+<h3>$1</h3>
+') .replace(/^##\s+(.+)$/gm, '
+<h2>$1</h2>
+') .replace(/^#\s+(.+)$/gm, '
+<h1>$1</h1>
+'); // Lists text = text.replace(/(^|\n)(?:\s*[-\*]\s+.+(?:\n\s*[-\*]\s+.+)*)/g,
+(m) => { const items = m.trim().split(/\n/).map(line =>
+line.replace(/^\s*[-\*]\s+/, '')).map(li => `
+<li>${li}</li>
+`).join(''); return `\n
+<ul>
+    ${items}
+</ul>
+`; }); text = text.replace(/(^|\n)(?:\s*\d+\.\s+.+(?:\n\s*\d+\.\s+.+)*)/g, (m)
+=> { const items = m.trim().split(/\n/).map(line => line.replace(/^\s*\d+\.\s+/,
+'')).map(li => `
+<li>${li}</li>
+`).join(''); return `\n
+<ol>
+    ${items}
+</ol>
+`; }); // Paragraphs and line breaks const parts = text.split(/\n\n+/).map(p =>
+`
+<p>${p.replace(/\n/g, '<br />')}</p>
+`); let html = parts.join(''); // Restore code blocks html =
+html.replace(/@@BLOCK(\d+)@@/g, (_, i) => blocks[Number(i)] || ''); return html;
+}

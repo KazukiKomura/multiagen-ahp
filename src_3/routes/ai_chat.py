@@ -86,8 +86,9 @@ def _build_initial_messages(weights: Dict[str, int]) -> List[Dict[str, str]]:
         "なお、参加者3名もそれぞれ異なる基準を持って評価を行っています。",
     ]
     weights_text = ''.join(lines)
+    # 画面側で注意事項（手続とルール）を表示するため、
+    # チャット内のルール案内バブルは出さず、重み確認のみ表示
     return [
-        {"role": "assistant", "content": RULES_BUBBLE_TEXT},
         {"role": "assistant", "content": weights_text},
     ]
 

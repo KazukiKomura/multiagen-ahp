@@ -548,18 +548,20 @@ document.addEventListener('keydown', function(e) {
 });
 
 // ページ離脱警告（フォーム入力中）
-let formModified = false;
+if (typeof window.__formModified === 'undefined') window.__formModified = false;
+if (typeof window.__suppressBeforeUnload === 'undefined') window.__suppressBeforeUnload = false;
 
 document.addEventListener('input', function() {
-    formModified = true;
+    window.__formModified = true;
 });
 
 document.addEventListener('submit', function() {
-    formModified = false;
+    window.__formModified = false;
 });
 
 window.addEventListener('beforeunload', function(e) {
-    if (formModified) {
+    if (window.__suppressBeforeUnload) return;
+    if (window.__formModified) {
         e.preventDefault();
         e.returnValue = '入力中のデータが失われます。本当にページを離れますか？';
     }

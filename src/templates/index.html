@@ -113,15 +113,13 @@ endblock %} {% block content %}
 
 <div class="welcome-section">
     <h2>実験へようこそ</h2>
-    <p>この実験では、グループでの意思決定プロセスについて研究します。</p>
 </div>
 
 <div class="experiment-details">
     <div class="detail-section">
         <h4>📋 実験の概要</h4>
         <p>
-            この実験では、採用に関しての重要な課題について話し合い、
-            グループとして最終的な意思決定を行います。
+            この実験では、採用に関しての重要な課題についてグループとして最終的な意思決定を行います。
         </p>
     </div>
 
@@ -165,39 +163,10 @@ endblock %} {% block content %}
     </div>
 
     <div class="detail-section">
-        <h4>💭 取り扱う課題について</h4>
-        <p>実際の自治体で検討されるような政策課題を扱います。例：</p>
-        <ul>
-            <li>公共施設の建設・改修に関する判断</li>
-            <li>地域活性化事業の優先順位決定</li>
-            <li>予算配分に関する合意形成</li>
-        </ul>
         <p>
             各課題には複数の評価軸（コスト、効果、実現可能性など）があり、
             これらを総合的に判断していただきます。
         </p>
-    </div>
-
-    <div class="important-note">
-        <strong>⚠️ 重要な注意事項</strong>
-        <ul style="margin-top: 8px">
-            <li>
-                <strong
-                    >実験中は途中で中断せず、最後まで完了してください</strong
-                >
-            </li>
-            <li>
-                <strong>約45-60分の時間を確保してから開始してください</strong>
-            </li>
-            <li>
-                実験は一度開始すると、データの整合性のため中断や再開はできません
-            </li>
-            <li>他の参加者は実在しない模擬的な設定です</li>
-            <li>
-                正解のない課題ですので、あなたの率直な判断をお聞かせください
-            </li>
-            <li>実験データは研究目的でのみ使用され、個人は特定されません</li>
-        </ul>
     </div>
 </div>
 
@@ -205,14 +174,12 @@ endblock %} {% block content %}
     <h3>参加同意の確認</h3>
     <p>
         実験を開始する前に、以下の内容をご確認いただき、
-        同意いただける場合はチェックボックスにチェックを入れてください。
+        確認完了場合はチェックボックスにチェックを入れてください。
     </p>
 
     <div class="consent-checkbox">
         <input type="checkbox" id="consent-all" />
-        <label for="consent-all">
-            上記の実験内容を理解し、参加に同意します
-        </label>
+        <label for="consent-all"> 上記の実験内容を理解しました </label>
     </div>
 </div>
 
@@ -220,7 +187,7 @@ endblock %} {% block content %}
     <div class="condition-card">
         <h3>🚀 実験開始</h3>
         <p>
-            上記の内容を確認し、すべてに同意いただけましたら実験を開始してください
+            上記の内容を確認し、すべてに目を通していただけましたら実験を開始してください
         </p>
         <button id="start-button" class="btn btn-primary btn-disabled" disabled>
             実験を開始
@@ -238,6 +205,9 @@ endblock %} {% block content %}
                 startButton.disabled = false;
                 startButton.classList.remove("btn-disabled");
                 startButton.onclick = function () {
+                    // ページ離脱警告の抑制（グローバルフラグで無効化）
+                    window.__formModified = false;
+                    window.__suppressBeforeUnload = true;
                     window.location.href = "/start/ai-facilitator";
                 };
             } else {

@@ -1,63 +1,54 @@
-{% extends "base.html" %}
-
-{% block title %}実験完了 - 意思決定実験システム{% endblock %}
-
-{% block content %}
+{% extends "base.html" %} {% block title %}実験完了 - キーワードのご案内{%
+endblock %} {% block content %}
 <div class="complete-section">
     <h2>実験完了</h2>
+
     <div class="completion-message">
         <div class="success-icon">✓</div>
-        <p>すべてのトライアルが完了しました。ご協力ありがとうございました。</p>
+        <p>ご協力ありがとうございました。これで本実験はすべて終了です。</p>
     </div>
-    
-    <div class="experiment-summary">
-        <h3>実験概要</h3>
-        <div class="summary-items">
-            <div class="summary-item">
-                <strong>条件:</strong> {{ condition }}
+
+    <div
+        class="experiment-summary"
+        style="max-width: 720px; margin-left: auto; margin-right: auto"
+    >
+        <h3 style="margin-bottom: 10px">Yahooクラウドソーシングでの手続き</h3>
+        <p style="color: #4b5563">
+            タスク画面に戻り、<strong>キーワード</strong>として下記の語を入力してください。
+            正確に入力すると、作業完了として申請できます。
+        </p>
+
+        <div style="margin: 18px 0; text-align: center">
+            <div
+                style="
+                    display: inline-block;
+                    padding: 14px 22px;
+                    border: 3px solid #667eea;
+                    border-radius: 10px;
+                    background: #f0f4ff;
+                    color: #1f2937;
+                    font-weight: 700;
+                    font-size: 22px;
+                    letter-spacing: 1px;
+                "
+            >
+                キーワード: <span style="color: #4f46e5">brain</span>
             </div>
-            <div class="summary-item">
-                <strong>完了トライアル数:</strong> 4/4
-            </div>
-            <div class="summary-item">
-                <strong>実験日時:</strong> <span id="completion-time"></span>
+            <div style="margin-top: 10px; font-size: 12px; color: #6b7280">
+                小文字の半角英字で入力してください
             </div>
         </div>
-    </div>
 
-    <div class="next-steps">
-        <h3>お疲れさまでした</h3>
-        <p>実験データは安全に保存されました。</p>
-        <p>ご不明な点がございましたら、実験担当者までお問い合わせください。</p>
-    </div>
-
-    <div class="actions">
-        <a href="/" class="btn btn-secondary">新しい実験を開始</a>
-        <button onclick="window.print()" class="btn btn-outline">完了証明書を印刷</button>
+        <div class="summary-items" style="max-width: 720px">
+            <div class="summary-item">
+                ・タスク画面の「キーワード」欄に <strong>brain</strong> と入力
+            </div>
+            <div>・入力後に提出（または完了）ボタンを押してください</div>
+        </div>
     </div>
 </div>
-
-<div class="certificate" id="certificate">
-    <div class="certificate-content">
-        <h2>実験参加証明書</h2>
-        <p>実験ID: {{ session.session_id if session.session_id else 'N/A' }}</p>
-        <p>条件: {{ condition }}</p>
-        <p>完了日時: <span class="cert-date"></span></p>
-        <p>この証明書は、上記の意思決定実験に最後まで参加されたことを証明します。</p>
-    </div>
-</div>
-{% endblock %}
-
-{% block scripts %}
+{% endblock %} {% block scripts %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const now = new Date();
-    const timeString = now.toLocaleString('ja-JP');
-    
-    document.getElementById('completion-time').textContent = timeString;
-    document.querySelectorAll('.cert-date').forEach(el => {
-        el.textContent = timeString;
-    });
-});
+    // 追加のスクリプトは特に不要です
 </script>
 {% endblock %}

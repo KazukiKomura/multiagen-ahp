@@ -367,7 +367,7 @@ def save_final_decision():
         return jsonify({'error': f'Server error: {str(e)}'}), 500
 
 
-@main_bp.route('/complete')
+@main_bp.route('/complete-1')
 def complete():
     """Completion page"""
     if 'session_id' not in session:

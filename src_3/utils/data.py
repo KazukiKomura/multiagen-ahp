@@ -186,7 +186,8 @@ def format_student_for_display(student_row: Dict[str, Any]) -> Dict[str, Any]:
         elif student_row.get(f'rec_letter_{i}_weak') == '1':
             rec_letters.append(f'推薦状{i}: 懸念あり')
         else:
-            rec_letters.append(f'推薦状{i}: 平均的')
+            # 「平均的」ではなく「普通」を返す
+            rec_letters.append(f'推薦状{i}: 普通')
     
     # 専攻の決定
     major_columns = ['major_humanities', 'major_naturalscience', 'major_socialscience', 

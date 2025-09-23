@@ -986,9 +986,10 @@ footer {
 }
 
 .letter-item.average {
-    background: #fff3cd;
-    color: #856404;
-    border: 2px solid #ffeaa7;
+    /* 普通: 黄色ではなくニュートラルなグレー */
+    background: #f1f3f5;
+    color: #495057;
+    border: 2px solid #dee2e6;
 }
 
 .letter-item.weak {
@@ -1430,8 +1431,9 @@ footer {
 
 /* フォームコンポーネント調整 */
 .final-weights .weights-container {
-    max-height: 200px;
-    overflow-y: auto;
+    /* 内部スクロールを無効化して全スライダーを常時表示 */
+    max-height: none;
+    overflow: visible;
 }
 
 .reasoning-section, .change-reasoning {
