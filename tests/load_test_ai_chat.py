@@ -25,7 +25,7 @@ def _err_excerpt(resp) -> str:
 
 
 async def one_user(base_url: str, turns: int, results: List[float], errors: List[str], user_id: int, jitter_ms: int = 0):
-    timeout = httpx.Timeout(30.0, connect=10.0)
+    timeout = httpx.Timeout(60.0, connect=30.0)
     async with httpx.AsyncClient(base_url=base_url, timeout=timeout, follow_redirects=True) as client:
         try:
             t0 = time.perf_counter()

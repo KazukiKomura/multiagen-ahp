@@ -69,6 +69,32 @@ def _get_system_prompt() -> str:
     )
 
 
+def _sanitize_llm_context(ctx: Dict[str, Any]) -> Dict[str, Any]:
+    """LLM入力用に不要/秘匿キーを除去したディープコピーを返す。
+
+    除外キー（ネスト内も対象）:
+      - questionnaire, algorithm_type, reason, condition, session_id
+    """
+    EXCLUDE = {"questionnaire", "algorithm_type", "reason", "condition", "session_id"}
+
+    def _clean(obj):
+        if isinstance(obj, dict):
+            out = {}
+            for k, v in obj.items():
+                if k in EXCLUDE:
+                    continue
+                out[k] = _clean(v)
+            return out
+        if isinstance(obj, list):
+            return [_clean(x) for x in obj]
+        return obj
+
+    try:
+        return _clean(dict(ctx))
+    except Exception:
+        return {k: v for k, v in (ctx or {}).items() if k not in EXCLUDE}
+
+
 def _display_label(name: str) -> str:
     """UI表示用の基準名マッピング。"""
     try:
@@ -257,7 +283,8 @@ def _build_responses_input(messages: List[Dict[str, str]], system_text: str, con
         {"role": "system", "content": [{"type": "input_text", "text": system_text}]}
     ]
 
-    decision_data_json = json.dumps(context, ensure_ascii=False, indent=2)
+    safe_ctx = _sanitize_llm_context(context or {})
+    decision_data_json = json.dumps(safe_ctx, ensure_ascii=False, indent=2)
     input_seq.append({
         "role": "system",
         "content": [{"type": "input_text", "text": "# セッションコンテキスト\n" + decision_data_json}],
@@ -274,7 +301,7 @@ def _build_responses_input(messages: List[Dict[str, str]], system_text: str, con
     return input_seq
 
 
-def _call_llm(messages: List[Dict[str, str]], context: Dict[str, Any], model: str = "gpt-4.1") -> str:
+def _call_llm(messages: List[Dict[str, str]], context: Dict[str, Any], model: str = "gpt-5-mini") -> str:
     client = _get_openai_client()
     system_text = _get_system_prompt()
     input_payload = _build_responses_input(messages, system_text, context)
@@ -421,7 +448,7 @@ def ai_chat():
         return ctx
 
     try:
-        model = os.getenv('OPENAI_RESPONSES_MODEL', 'gpt-4.1')
+        model = os.getenv('OPENAI_RESPONSES_MODEL', 'gpt-5-mini')
         ctx = build_llm_context()
 
         # === 論理エンジンによる議論分析 ===
@@ -470,8 +497,8 @@ def ai_chat():
         # Debug print + persist last context (opt-in by env or always safe)
         try:
             if str(os.getenv('DEBUG_LLM_CONTEXT', '')).lower() in ('1', 'true', 'yes', 'on'):
-                print("\n===== DEBUG: LLM CONTEXT (current session) =====")
-                print(json.dumps(ctx, ensure_ascii=False, indent=2))
+                print("\n===== DEBUG: LLM CONTEXT (sanitized) =====")
+                print(json.dumps(_sanitize_llm_context(ctx), ensure_ascii=False, indent=2))
                 print("===== END CONTEXT =====\n")
         except Exception:
             pass
@@ -480,7 +507,7 @@ def ai_chat():
         try:
             sdata = session_repository.get_session(session['session_id']) or {}
             ai_chat_data = sdata.get('ai_chat_data', {}) or {}
-            ai_chat_data['last_llm_context'] = ctx
+            ai_chat_data['last_llm_context'] = _sanitize_llm_context(ctx)
             session_repository.update_session(session['session_id'], ai_chat_data=ai_chat_data)
         except Exception:
             pass

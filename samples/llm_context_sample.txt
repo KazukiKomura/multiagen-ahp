@@ -1,0 +1,96 @@
+{
+  "trial": 2,
+  "student_info": {
+    "student_id": "S-2025-042",
+    "major": "情報工学",
+    "region": "関東",
+    "institution_rank": "上位ランク",
+    "gpa": 3.7,
+    "gre_quant": 165,
+    "gre_verbal": 159,
+    "gre_writing": 4.5,
+    "sop_score": 4.0,
+    "diversity_score": 3.5,
+    "rec_letters": [
+      {"author": "教授A", "rating": 4, "comment": "研究姿勢が優れている"},
+      {"author": "教授B", "rating": 3, "comment": "基礎は堅実"}
+    ],
+    "detailed_scores": {
+      "学業成績": 85,
+      "基礎能力テスト": 88,
+      "実践経験": 70,
+      "推薦・評価": 78,
+      "志望動機・フィット": 82
+    }
+  },
+  "user_initial_decision": "一次通過",
+  "user_initial_weights": {
+    "学業成績": 40,
+    "基礎能力テスト": 25,
+    "実践経験": 15,
+    "推薦・評価": 10,
+    "志望動機・フィット": 10
+  },
+  "participant_decisions": ["見送り", "見送り", "見送り"],
+  "participant_opinions": [
+    {
+      "participant": "AI1",
+      "decision": "見送り",
+      "weights": {
+        "学業成績": 20,
+        "基礎能力テスト": 20,
+        "実践経験": 30,
+        "推薦・評価": 20,
+        "志望動機・フィット": 10
+      },
+      
+    },
+    {
+      "participant": "AI2",
+      "decision": "見送り",
+      "weights": {
+        "学業成績": 25,
+        "基礎能力テスト": 35,
+        "実践経験": 10,
+        "推薦・評価": 20,
+        "志望動機・フィット": 10
+      },
+      
+    },
+    {
+      "participant": "AI3",
+      "decision": "見送り",
+      "weights": {
+        "学業成績": 15,
+        "基礎能力テスト": 20,
+        "実践経験": 20,
+        "推薦・評価": 35,
+        "志望動機・フィット": 10
+      },
+      
+    }
+  ],
+  "group_outcome": "見送り",
+  "argumentation_analysis": {
+    "key_conflict_point": "学業成績の重みと実践経験の重みのバランス",
+    "detailed_analysis": {
+      "conflict_points": [
+        {
+          "criterion": "学業成績",
+          "user_weight": 40,
+          "opponent_weight": 15,
+          "top_opponent": {"source": "participant1", "claim": "実務経験重視"},
+          "group": "価値観が異なる群"
+        },
+        {
+          "criterion": "基礎能力テスト",
+          "user_weight": 25,
+          "opponent_weight": 35,
+          "top_opponent": {"source": "participant2", "claim": "定量テスト重視"},
+          "group": "価値観が近い群"
+        }
+      ]
+    }
+  },
+  "suggested_question": "実践経験の不足が初回判断に与えた影響を、学業成績重視の観点からどのように評価しましたか？"
+}
