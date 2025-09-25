@@ -27,11 +27,11 @@ endblock %} {% block content %}
                 続いて、<strong>他のAI（AI）3名の意見</strong>を確認します。
             </li>
             <li>
-                必要に応じて<strong>最終判定と重要度</strong>を見直し、確定してください。
+                最後に<strong>最終判定と重要度</strong>を見直し、確定してください。
             </li>
         </ul>
         <div class="guide-note">
-            練習の目的は操作に慣れることです。本番と同じ流れで進みますが、落ち着いて手順を確認しながら進めてください。
+            練習セッションは、スライダーの操作に慣れることが主な目的です。落ち着いて手順を確認しながら進めてください。
         </div>
     </div>
     {% else %}
@@ -235,6 +235,7 @@ endblock %} {% block content %}
                 <span class="step-number">2</span>
                 <span class="step-label">他の意見確認</span>
             </div>
+            {% if trial != 1 %}
             <div class="step" data-step="2">
                 <span class="step-number">3</span>
                 <span class="step-label">AIチャット</span>
@@ -243,6 +244,12 @@ endblock %} {% block content %}
                 <span class="step-number">4</span>
                 <span class="step-label">最終決定</span>
             </div>
+            {% else %}
+            <div class="step" data-step="3">
+                <span class="step-number">3</span>
+                <span class="step-label">最終決定</span>
+            </div>
+            {% endif %}
         </div>
 
         <!-- フェーズ1: 自分の意見表明 -->
@@ -361,7 +368,8 @@ endblock %} {% block content %}
                 </div>
             </div>
             <button class="btn btn-primary" onclick="nextPhase()">
-                AIチャットへ進む
+                {% if trial == 1 %} 最終決定へ進む {% else %} AIチャットへ進む
+                {% endif %}
             </button>
         </div>
 
@@ -961,6 +969,13 @@ endblock %} {% block content %}
 
         // フェーズ切り替え
         function showPhase(phaseIndex) {
+            const trial = {{ trial }};
+
+            // 練習セッション（trial === 1）の場合、AIチャットフェーズをスキップ
+            if (trial === 1 && phaseIndex === 2) {
+                phaseIndex = 3; // 直接最終決定フェーズへ
+            }
+
             document.querySelectorAll('.phase-content').forEach(content => {
                 content.classList.remove('active');
             });
@@ -973,8 +988,8 @@ endblock %} {% block content %}
 
             currentPhase = phaseIndex;
 
-        if (phaseIndex === 2) {
-            // AIチャットフェーズ開始時に手続き説明を取得
+        if (phaseIndex === 2 && trial !== 1) {
+            // 本番セッションのみAIチャットフェーズ開始時に手続き説明を取得
             initializeChat();
             // 見出し位置へスクロール（チャットの途中から始まらないように）
             setTimeout(() => {
@@ -1013,8 +1028,17 @@ endblock %} {% block content %}
         }
 
         window.nextPhase = function() {
+            const trial = {{ trial }};
+
             if (currentPhase < 3) {
-                showPhase(currentPhase + 1);
+                let nextPhase = currentPhase + 1;
+
+                // 練習セッションの場合、フェーズ1（他の意見確認）の後は直接フェーズ3（最終決定）へ
+                if (trial === 1 && currentPhase === 1) {
+                    nextPhase = 3;
+                }
+
+                showPhase(nextPhase);
             }
         };
 
