@@ -107,7 +107,7 @@ def analyze_weight_conflicts(arguments: List[Dict[str, Any]]) -> Dict[str, Any]:
     if not user_arg:
         return {"conflict_type": "no_user_argument"}
     
-    # ユーザーと異なる判断をした参加者を特定
+    # ユーザーと異なる判断をしたAI（参加者）を特定
     opposing_args = [arg for arg in arguments if arg['claim'] != user_arg['claim']]
     
     if not opposing_args:
@@ -116,7 +116,7 @@ def analyze_weight_conflicts(arguments: List[Dict[str, Any]]) -> Dict[str, Any]:
             "message": "全員が同じ判断に達しており、明確な対立はありません。"
         }
     
-    # 最も重み配分が異なる参加者を特定
+    # 最も重み配分が異なるAI（参加者）を特定
     max_weight_diff = 0
     main_opponent = None
     conflict_criterion = None
@@ -185,37 +185,71 @@ def calculate_value_rank_distance(user_weights: Dict[str, float], participant_we
     return discordant_pairs / total_pairs if total_pairs > 0 else 0.0
 
 
-def group_participants_by_value_similarity(arguments: List[Dict[str, Any]], user_weights: Dict[str, float], threshold: float = 0.4) -> Dict[str, List[Dict[str, Any]]]:
+def group_participants_by_value_similarity(arguments: List[Dict[str, Any]], user_weights: Dict[str, float], threshold: float = None) -> Dict[str, List[Dict[str, Any]]]:
     """
-    価値順位の類似度に基づいて参加者を群分けします。
+    価値順位の類似度に基づいて参加者を相対的に群分けします。
     
     Args:
         arguments: 全参加者の主張リスト
         user_weights: ユーザーの重み配分
-        threshold: 群分けの閾値（これ以下なら「近い群」）
+        threshold: 非推奨 - 相対的分割のため使用されません
     
     Returns:
         'similar': 価値観が近い群, 'different': 価値観が異なる群
     """
+    print(f"[DEBUG] 群分け開始 - 相対的分割アプローチ")
     user_arg = next((arg for arg in arguments if arg['source'] == 'user'), None)
     if not user_arg:
+        print(f"[DEBUG] ユーザー主張が見つかりません")
         return {'similar': [], 'different': []}
     
-    similar_group = []
-    different_group = []
+    print(f"[DEBUG] ユーザー重み: {user_weights}")
     
+    # 全参加者の距離を計算
+    participants_with_distances = []
     for arg in arguments:
         if arg['source'] == 'user':
             continue
             
         # 価値順位距離を計算
         distance = calculate_value_rank_distance(user_weights, arg['weights'])
-        
-        if distance <= threshold:
-            similar_group.append(arg)
-        else:
-            different_group.append(arg)
+        participants_with_distances.append((arg, distance))
+        print(f"[DEBUG] {arg['source']}: 距離={distance:.3f}, 重み={arg['weights']}")
     
+    if not participants_with_distances:
+        print(f"[DEBUG] 参加者がいません")
+        return {'similar': [], 'different': []}
+    
+    # 距離でソート（近い順）
+    participants_with_distances.sort(key=lambda x: x[1])
+    
+    # 相対的分割：最も近い参加者を「近い群」に、残りを「異なる群」に
+    # 最低1人は「近い群」、最低1人は「異なる群」になるよう調整
+    total_count = len(participants_with_distances)
+    if total_count == 1:
+        # 1人の場合は「近い群」に分類
+        similar_group = [participants_with_distances[0][0]]
+        different_group = []
+    elif total_count == 2:
+        # 2人の場合は1人ずつ
+        similar_group = [participants_with_distances[0][0]]
+        different_group = [participants_with_distances[1][0]]
+    else:
+        # 3人以上の場合は最も近い1人を「近い群」、残りを「異なる群」に
+        similar_count = 1
+        similar_group = [p[0] for p in participants_with_distances[:similar_count]]
+        different_group = [p[0] for p in participants_with_distances[similar_count:]]
+    
+    print(f"[DEBUG] 相対分割結果:")
+    for arg in similar_group:
+        distance = next(d for p, d in participants_with_distances if p == arg)
+        print(f"[DEBUG]   近い群: {arg['source']} (距離={distance:.3f})")
+    
+    for arg in different_group:
+        distance = next(d for p, d in participants_with_distances if p == arg)
+        print(f"[DEBUG]   異なる群: {arg['source']} (距離={distance:.3f})")
+        
+    print(f"[DEBUG] 群分け結果 - 近い群: {len(similar_group)}人, 異なる群: {len(different_group)}人")
     return {
         'similar': similar_group,
         'different': different_group
@@ -234,6 +268,7 @@ def calculate_criterion_salience_scores(arguments: List[Dict[str, Any]], groups:
     Returns:
         群別・基準別のサリエンススコア
     """
+    print(f"[DEBUG] サリエンススコア計算開始")
     user_arg = next((arg for arg in arguments if arg['source'] == 'user'), None)
     if not user_arg:
         return {'similar': {}, 'different': {}}
@@ -241,10 +276,12 @@ def calculate_criterion_salience_scores(arguments: List[Dict[str, Any]], groups:
     results = {'similar': {}, 'different': {}}
     
     for group_name, group_members in groups.items():
+        print(f"[DEBUG] {group_name}群の計算開始 - メンバー数: {len(group_members)}")
         criterion_scores = {}
         
         for criterion in user_weights.keys():
             total_salience = 0.0
+            print(f"[DEBUG]   {criterion}の計算:")
             
             for participant in group_members:
                 # 価値係数（重み配分の重要度）
@@ -255,11 +292,14 @@ def calculate_criterion_salience_scores(arguments: List[Dict[str, Any]], groups:
                 
                 # サリエンススコア = 価値係数 × 重み差分
                 salience = value_coefficient * weight_difference
+                print(f"[DEBUG]     {participant['source']}: 係数={value_coefficient:.2f} × 重み差={weight_difference} = {salience:.2f}")
                 total_salience += salience
             
             criterion_scores[criterion] = total_salience
+            print(f"[DEBUG]   {criterion}: 合計サリエンス = {total_salience:.2f}")
         
         results[group_name] = criterion_scores
+        print(f"[DEBUG] {group_name}群スコア: {criterion_scores}")
     
     return results
 
@@ -276,39 +316,47 @@ def extract_top_conflict_points(salience_scores: Dict[str, Dict[str, float]], gr
     Returns:
         抽出された論点リスト（最大2件）
     """
+    print(f"[DEBUG] 論点抽出開始")
     conflict_points = []
     user_arg = next((arg for arg in arguments if arg['source'] == 'user'), None)
     if not user_arg:
+        print(f"[DEBUG] ユーザー主張なし - 論点抽出終了")
         return conflict_points
     
     for group_name, criterion_scores in salience_scores.items():
+        print(f"[DEBUG] {group_name}群から論点抽出 - スコア: {criterion_scores}")
         if not criterion_scores:
+            print(f"[DEBUG]   スコアなし - スキップ")
             continue
             
         # 最高サリエンスの基準を特定
         top_criterion = max(criterion_scores.items(), key=lambda x: x[1])
         criterion_name, salience_score = top_criterion
+        print(f"[DEBUG]   最高サリエンス基準: {criterion_name} (スコア: {salience_score:.2f})")
         
-        # その基準で最も対立している参加者を特定
+        # その基準で最も対立しているAI（参加者）を特定
         group_members = groups[group_name]
         if not group_members:
+            print(f"[DEBUG]   メンバーなし - スキップ")
             continue
             
-        # ユーザーとの重み差が最大の参加者を選択
+        # ユーザーとの重み差が最大のAI（参加者）を選択
         max_weight_diff = 0
         top_opponent = None
         
         for participant in group_members:
             weight_diff = abs(user_arg['weights'][criterion_name] - participant['weights'][criterion_name])
+            print(f"[DEBUG]     {participant['source']}: {criterion_name}重み差 = {weight_diff}")
             if weight_diff > max_weight_diff:
                 max_weight_diff = weight_diff
                 top_opponent = participant
         
         if top_opponent:
-            # 寄与者リスト（同じ基準を重視する参加者）
+            print(f"[DEBUG]   最大対立相手: {top_opponent['source']} (重み差: {max_weight_diff})")
+            # 寄与者リスト（同じ基準を重視するAI）
             contributors = []
             for participant in group_members:
-                # その基準の重要度が平均以上の参加者を寄与者とする
+                # その基準の重要度が平均以上のAIを寄与者とする
                 avg_weight = sum(participant['weights'].values()) / len(participant['weights'])
                 if participant['weights'][criterion_name] >= avg_weight:
                     contributors.append({
@@ -317,11 +365,12 @@ def extract_top_conflict_points(salience_scores: Dict[str, Dict[str, float]], gr
                         'contribution': participant['weights'][criterion_name] / 100.0
                     })
             
-            # 群名を読みやすい形式に変換
+            # 群名を読みやすい形式に変換（表示用）
             group_label = "価値観が近い群" if group_name == 'similar' else "価値観が異なる群"
-            
+
+            # 内部表現は 'similar' / 'different' を保持し、表示は後段で変換する
             conflict_point = {
-                'group': group_label,
+                'group': group_name,  # 'similar' or 'different'
                 'criterion': criterion_name,
                 'salience_score': salience_score,
                 'user_weight': user_arg['weights'][criterion_name],
@@ -332,9 +381,13 @@ def extract_top_conflict_points(salience_scores: Dict[str, Dict[str, float]], gr
             }
             
             conflict_points.append(conflict_point)
+            print(f"[DEBUG]   論点追加: {criterion_name} ({group_label})")
+        else:
+            print(f"[DEBUG]   対立相手なし - スキップ")
     
     # サリエンススコア順でソート
     conflict_points.sort(key=lambda x: x['salience_score'], reverse=True)
+    print(f"[DEBUG] 論点抽出完了 - 抽出数: {len(conflict_points)}")
     
     return conflict_points[:2]  # 最大2件  # 最大2件
 
@@ -442,19 +495,25 @@ def summarize_debate(arguments: List[Dict[str, Any]], attacks: List[Tuple[str, s
         return _legacy_summarize_debate(arguments, attacks)
     
     # 新アルゴリズム: 2本立てランキング型サリエンス
+    print(f"[DEBUG] 新アルゴリズム開始 - 2本立てランキング型サリエンス")
     try:
         # Step 1: 価値順位による群分け
+        print(f"[DEBUG] Step 1: 価値順位による群分け")
         groups = group_participants_by_value_similarity(arguments, user_weights)
         
         # Step 2: 基準ごとのサリエンススコア計算
+        print(f"[DEBUG] Step 2: 基準ごとのサリエンススコア計算")
         salience_scores = calculate_criterion_salience_scores(arguments, groups, user_weights)
         
         # Step 3: 各群からTop-1論点を抽出
+        print(f"[DEBUG] Step 3: 各群からTop-1論点を抽出")
         conflict_points = extract_top_conflict_points(salience_scores, groups, arguments)
         
         # Step 4: 2本立て討論サマリー生成
+        print(f"[DEBUG] Step 4: 2本立て討論サマリー生成")
         analysis_result = generate_two_track_debate_summary(conflict_points, arguments, user_weights)
         
+        print(f"[DEBUG] 新アルゴリズム完了 - 抽出された論点数: {len(conflict_points)}")
         # 既存形式との互換性を保つため、キー名を調整
         return {
             "key_conflict_point": _format_conflict_points_for_legacy(analysis_result),
@@ -481,7 +540,7 @@ def _legacy_summarize_debate(arguments: List[Dict[str, Any]], attacks: List[Tupl
     
     if weight_analysis["conflict_type"] == "consensus":
         return {
-            "key_conflict_point": "全参加者が同じ判断に達しており、対立点はありません。重み配分の根拠を深掘りすると良いでしょう。",
+            "key_conflict_point": "全AIが同じ判断に達しており、対立点はありません。重み配分の根拠を深掘りすると良いでしょう。",
             "user_claim_summary": f"ユーザーは「{user_arg['reason_criterion']}」({user_arg['reason_weight']}%)を最重視して「{user_arg['claim']}」と判断しています。",
             "suggested_question_direction": "この重み配分を選んだ具体的な理由や、他の基準との比較検討について"
         }
@@ -498,7 +557,7 @@ def _legacy_summarize_debate(arguments: List[Dict[str, Any]], attacks: List[Tupl
             "user_claim_summary": f"ユーザーは「{user_arg['reason_criterion']}」({user_arg['reason_weight']}%)を根拠に「{user_arg['claim']}」と判断しています。"
         }
 
-    # 最も重み配分が対立している参加者を特定
+    # 最も重み配分が対立しているAIを特定
     main_opponent = counter_args[0]
     if weight_analysis["conflict_type"] == "weight_conflict":
         opponent_info = next((arg for arg in counter_args 
@@ -527,7 +586,7 @@ def _legacy_summarize_debate(arguments: List[Dict[str, Any]], attacks: List[Tupl
 
     summary = {
         "user_claim_summary": f"ユーザーは「{user_arg['reason_criterion']}」({user_arg['reason_weight']}%)を最重視して「{user_arg['claim']}」と判断しています。",
-        "opponent_claim_summary": f"参加者{main_opponent['source'][-1]}は「{main_opponent['reason_criterion']}」({main_opponent['reason_weight']}%)を最重視して「{main_opponent['claim']}」と判断しています。",
+        "opponent_claim_summary": f"AI{main_opponent['source'][-1]}は「{main_opponent['reason_criterion']}」({main_opponent['reason_weight']}%)を最重視して「{main_opponent['claim']}」と判断しています。",
         "key_conflict_point": key_conflict_point,
         "weight_difference": weight_analysis.get("weight_difference", 0),
         "suggested_question_direction": suggested_question_direction

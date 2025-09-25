@@ -151,11 +151,86 @@ class SessionRepository:
         try:
             conn = sqlite3.connect(self.db_path)
             c = conn.cursor()
-            
+
             # Build update query dynamically
             set_clauses = []
             values = []
-            
+
+            # If decision_data is being updated, augment it with server-side timing info
+            if 'decision_data' in kwargs and isinstance(kwargs.get('decision_data'), dict):
+                try:
+                    # Load current decision_data to detect transitions
+                    current = self.get_session(session_id) or {}
+                    prev_decision = current.get('decision_data', {}) or {}
+                    new_decision = dict(kwargs['decision_data'])  # shallow copy
+
+                    # Determine target trial number (prefer explicit in decision_data)
+                    trial_num = new_decision.get('trial') or prev_decision.get('trial')
+                    if trial_num is not None:
+                        trial_key = str(trial_num)
+                        timings = new_decision.get('trial_timings') or {}
+                        trial_timing = timings.get(trial_key) or {}
+
+                        now_ts = self._now_jst_str()
+
+                        # Record initial timestamp when user_decision first appears for the trial
+                        if new_decision.get('user_decision'):
+                            if not trial_timing.get('initial_saved_at_server'):
+                                trial_timing['initial_saved_at_server'] = now_ts
+
+                        # Record final timestamp when final_decision is present
+                        if new_decision.get('final_decision'):
+                            if not trial_timing.get('final_submitted_at_server'):
+                                trial_timing['final_submitted_at_server'] = now_ts
+
+                            # If both times exist, compute elapsed seconds
+                            start_str = trial_timing.get('initial_saved_at_server')
+                            end_str = trial_timing.get('final_submitted_at_server')
+                            if start_str and end_str:
+                                try:
+                                    fmt = "%Y-%m-%d %H:%M:%S"
+                                    start_dt = datetime.strptime(start_str, fmt)
+                                    end_dt = datetime.strptime(end_str, fmt)
+                                    elapsed = (end_dt - start_dt).total_seconds()
+                                    trial_timing['elapsed_seconds'] = elapsed
+                                except Exception:
+                                    # If parsing fails, skip elapsed computation gracefully
+                                    pass
+
+                        timings[trial_key] = trial_timing
+                        new_decision['trial_timings'] = timings
+
+                        # Build per-trial snapshot (non-destructive, keep top-level as-is)
+                        per_trial = new_decision.get('per_trial') or {}
+                        snapshot_keys = [
+                            'user_decision', 'user_weights', 'timestamp',
+                            'participant_opinions', 'participant_decisions',
+                            'final_decision', 'final_weights', 'change_reasoning',
+                            'confidence', 'final_timestamp', 'group_outcome'
+                        ]
+                        snapshot = {k: new_decision.get(k) for k in snapshot_keys if k in new_decision}
+                        # Only store if we have at least one meaningful key
+                        if snapshot:
+                            per_trial[trial_key] = snapshot
+                            new_decision['per_trial'] = per_trial
+
+                        # Map student_id by trial if available
+                        try:
+                            student_json = current.get('student_data') or {}
+                            student_id = student_json.get('student_id')
+                            if student_id:
+                                sid_map = new_decision.get('student_id_by_trial') or {}
+                                sid_map[trial_key] = student_id
+                                new_decision['student_id_by_trial'] = sid_map
+                        except Exception:
+                            pass
+
+                    # Replace kwargs payload with augmented decision_data
+                    kwargs['decision_data'] = new_decision
+                except Exception:
+                    # On any failure, fall back to original payload without blocking the update
+                    pass
+
             for key, value in kwargs.items():
                 if key in ['student_data', 'questionnaire_data', 'decision_data', 'ai_chat_data']:
                     # JSON fields

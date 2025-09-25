@@ -9,7 +9,7 @@ services:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - OPENAI_API_KEY2=${OPENAI_API_KEY2}
       - OPENAI_RESPONSES_MODEL=${OPENAI_RESPONSES_MODEL:-gpt-4.1}
-      - DEBUG_LLM_CONTEXT=0
+      - DEBUG_LLM_CONTEXT=1
     volumes:
       - ./data:/app/data
     restart: unless-stopped

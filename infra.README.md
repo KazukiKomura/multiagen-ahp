@@ -61,32 +61,41 @@ chmod 400 ~/.ssh/lightsail-apne1.pem
 aws lightsail get-blueprints --region ap-northeast-1 \
   --query "blueprints[?contains(blueprintId, 'ubuntu')].[blueprintId,version]" --output table
 
-# 利用可能なバンドル（プラン）確認  
+# 利用可能なバンドル（プラン）確認
 aws lightsail get-bundles --region ap-northeast-1 --output table
 
-# インスタンス作成（$5プラン推奨）
+# インスタンス作成（2GB RAM以上推奨）
 aws lightsail create-instances \
     --instance-names "multiagent-ahp" \
     --availability-zone "ap-northeast-1a" \
     --blueprint-id "ubuntu_22_04" \
-    --bundle-id "medium_2_0" \
+    --bundle-id "large_2_0" \
     --region ap-northeast-1 \
-    --user-data "#!/bin/bash
+    --user-data '#!/bin/bash
 apt-get update
 apt-get install -y docker.io docker-compose-v2 git curl jq
 systemctl start docker
 systemctl enable docker
-usermod -aG docker ubuntu"
+usermod -aG docker ubuntu'
 ```
 
 ## A-3) 静的IP割り当て
 
 ```bash
-# 静的IP作成・割り当て
+# 静的IP作成
 aws lightsail allocate-static-ip \
     --static-ip-name "multiagent-ahp-ip" \
     --region ap-northeast-1
 
+# インスタンス起動完了まで待機（重要）
+echo "インスタンスの起動完了を待機中..."
+while [ "$(aws lightsail get-instance --instance-name "multiagent-ahp" --region ap-northeast-1 --query 'instance.state.name' --output text)" != "running" ]; do
+    echo "待機中..."
+    sleep 10
+done
+echo "インスタンスが起動しました"
+
+# 静的IPをインスタンスにアタッチ
 aws lightsail attach-static-ip \
     --static-ip-name "multiagent-ahp-ip" \
     --instance-name "multiagent-ahp" \
@@ -98,6 +107,9 @@ STATIC_IP=$(aws lightsail get-static-ip \
     --region ap-northeast-1 \
     --query 'staticIp.ipAddress' --output text)
 echo "Static IP: $STATIC_IP"
+
+# 静的IP環境変数を設定（後の手順で使用）
+export STATIC_IP
 ```
 
 ## A-4) 追加ディスク作成・アタッチ
@@ -136,37 +148,25 @@ aws lightsail put-instance-public-ports \
             "fromPort": 22,
             "toPort": 22,
             "protocol": "tcp",
-            "accessFrom": {
-                "protocol": "tcp",
-                "accessType": "public"
-            }
+            "cidrs": ["0.0.0.0/0"]
         },
         {
             "fromPort": 80,
             "toPort": 80,
             "protocol": "tcp",
-            "accessFrom": {
-                "protocol": "tcp", 
-                "accessType": "public"
-            }
+            "cidrs": ["0.0.0.0/0"]
         },
         {
             "fromPort": 443,
             "toPort": 443,
             "protocol": "tcp",
-            "accessFrom": {
-                "protocol": "tcp",
-                "accessType": "public"
-            }
+            "cidrs": ["0.0.0.0/0"]
         },
         {
             "fromPort": 5002,
             "toPort": 5002,
             "protocol": "tcp",
-            "accessFrom": {
-                "protocol": "tcp",
-                "accessType": "public"
-            }
+            "cidrs": ["0.0.0.0/0"]
         }
     ]'
 ```
@@ -181,23 +181,55 @@ ssh -i ~/.ssh/lightsail-apne1.pem ubuntu@$STATIC_IP
 
 # 追加ディスクの確認・セットアップ
 lsblk
-sudo mkfs.ext4 -F /dev/nvme1n1
+
+# 追加ディスクのデバイス名を確認（xvdf または nvme1n1）
+# 出力結果に応じて適切なデバイス名を使用
+if [ -b /dev/xvdf ]; then
+    DISK_DEVICE="/dev/xvdf"
+elif [ -b /dev/nvme1n1 ]; then
+    DISK_DEVICE="/dev/nvme1n1"
+else
+    echo "追加ディスクが見つかりません"
+    exit 1
+fi
+
+echo "使用するディスクデバイス: $DISK_DEVICE"
+
+sudo mkfs.ext4 -F $DISK_DEVICE
 sudo mkdir -p /mnt/data
-sudo mount /dev/nvme1n1 /mnt/data
+sudo mount $DISK_DEVICE /mnt/data
 sudo chown ubuntu:ubuntu /mnt/data
 
 # 自動マウント設定
-UUID=$(sudo blkid -s UUID -o value /dev/nvme1n1)
+UUID=$(sudo blkid -s UUID -o value $DISK_DEVICE)
 echo "UUID=$UUID /mnt/data ext4 defaults,nofail 0 2" | sudo tee -a /etc/fstab
 
-# プロジェクトクローン（GitHub等から）
-git clone https://github.com/[YOUR-REPO]/multiagentahp.git
+# プロジェクトファイル転送
+# 方法1: ローカルからrsyncで転送（推奨・確実）
+# ローカルマシン側で実行（SSHセッションを一度exit）:
+exit
+
+# ローカルマシンで実行:
+cd /path/to/your/multiagentahp
+rsync -avz --progress -e "ssh -i ~/.ssh/lightsail-apne1.pem" \
+  --exclude='.git' \
+  --exclude='__pycache__' \
+  --exclude='.venv' \
+  --exclude='data/sessions.db' \
+  . ubuntu@$STATIC_IP:~/multiagentahp/
+
+# 再度サーバーに接続
+ssh -i ~/.ssh/lightsail-apne1.pem ubuntu@$STATIC_IP
+
+# 方法2: HTTPSクローン（代替手段）
+# git clone https://github.com/KazukiKomura/multiagentahp.git
+
 cd multiagentahp
 
 # 環境変数設定
 cat > .env << EOF
 OPENAI_API_KEY=your_api_key_here
-OPENAI_API_KEY2=your_api_key2_here  
+OPENAI_API_KEY2=your_api_key2_here
 OPENAI_RESPONSES_MODEL=gpt-4.1
 DEBUG_LLM_CONTEXT=0
 FLASK_ENV=production
@@ -217,28 +249,87 @@ docker compose -f docker-compose.prod.yml up -d --build
 ## B-0) 前提
 - OS: Ubuntu 22.04/24.04（Lightsail/EC2）
 - ファイアウォール/セキュリティグループで必要ポートを開放済み
-- このリポジトリがサーバに配置済み（`git clone` など）
+- SSH接続が可能
+- このリポジトリをサーバに配置する必要あり（下記手順参照）
 
 ## B-1) 追加ディスクの準備（任意）
 1. ディスクを確認:
    - `lsblk -f` または `lsblk`
-   - 通常、`nvme0n1`がルートディスク、`nvme1n1`が追加ディスク
-   - 新しいボリュームが `nvme1n1` 等で表示され、FSTYPE が空なら未フォーマット
-   - **注意**: `/dev/xvdf`は存在しません。必ず`/dev/nvme1n1`を使用してください
-2. フォーマット（既存データが無いことを確認の上）:
-   - `sudo mkfs.ext4 -F /dev/nvme1n1`
+   - 追加ディスクは環境により`xvdf`または`nvme1n1`として認識される
+   - 新しいボリュームがFSTYPE空で表示されれば未フォーマット
+2. デバイス名の確認とフォーマット（既存データが無いことを確認の上）:
+   ```bash
+   # デバイス名を確認
+   if [ -b /dev/xvdf ]; then
+       DISK_DEVICE="/dev/xvdf"
+   elif [ -b /dev/nvme1n1 ]; then
+       DISK_DEVICE="/dev/nvme1n1"
+   else
+       echo "追加ディスクが見つかりません"
+       exit 1
+   fi
+   echo "使用するディスクデバイス: $DISK_DEVICE"
+
+   # フォーマット
+   sudo mkfs.ext4 -F $DISK_DEVICE
+   ```
 3. マウント:
    - `sudo mkdir -p /mnt/data`
-   - `sudo mount /dev/nvme1n1 /mnt/data`
+   - `sudo mount $DISK_DEVICE /mnt/data`
    - `sudo chown ubuntu:ubuntu /mnt/data`
 4. 自動マウント（再起動後の維持）:
-   - `UUID=$(sudo blkid -s UUID -o value /dev/nvme1n1)`
+   - `UUID=$(sudo blkid -s UUID -o value $DISK_DEVICE)`
    - `echo "UUID=$UUID /mnt/data ext4 defaults,nofail 0 2" | sudo tee -a /etc/fstab`
    - `sudo mount -a`
 
-> 注意: ルートディスク（`/dev/nvme0n1`）には触れないでください。
+> 注意: ルートディスク（通常`xvda`または`nvme0n1`）には触れないでください。
 
-## B-2) Docker/Compose のセットアップ
+## B-2) プロジェクトファイル転送
+
+### 方法1: ローカルからrsync転送（推奨）
+
+**ローカルマシン側で実行:**
+
+```bash
+# パブリックIPアドレスを確認・設定
+export PUBLIC_IP="[あなたのLightsailパブリックIP]"
+
+# プロジェクトディレクトリに移動
+cd /path/to/your/multiagentahp
+
+# rsyncで効率的に転送
+rsync -avz --progress -e "ssh -i ~/.ssh/lightsail-apne1.pem" \
+  --exclude='.git' \
+  --exclude='__pycache__' \
+  --exclude='.venv' \
+  --exclude='data/sessions.db' \
+  . ubuntu@35.77.244.101:~/multiagentahp/
+```
+
+### 方法2: SCP転送
+
+```bash
+# プロジェクト全体を転送
+scp -r -i ~/.ssh/lightsail-apne1.pem . ubuntu@$PUBLIC_IP:~/multiagentahp/
+```
+
+### 方法3: GitHubからクローン
+
+**サーバー側で実行（SSH接続後）:**
+
+```bash
+# HTTPSクローン（公開リポジトリ）
+git clone https://github.com/KazukiKomura/multiagentahp.git
+
+# またはSSHクローン（SSH鍵設定済みの場合）
+# git clone git@github.com:KazukiKomura/multiagentahp.git
+
+cd multiagentahp
+```
+
+**⚠️ 注意:** プライベートIPアドレス（172.x.x.x）ではなく、必ずパブリックIPアドレスを使用してください。
+
+## B-3) Docker/Compose のセットアップ
 ```
 sudo apt-get update
 sudo apt-get install -y ca-certificates curl gnupg
@@ -256,7 +347,7 @@ docker --version
 docker compose version
 ```
 
-## B-3) 環境変数の設定
+## B-4) 環境変数の設定
 このリポジトリのルートに `.env` を作成して、以下を設定します（Compose が読み込みます）。
 
 ```
@@ -266,7 +357,7 @@ OPENAI_RESPONSES_MODEL=gpt-4.1     # 任意（例: gpt-4o-mini）
 DEBUG_LLM_CONTEXT=0                # 負荷テスト時は 0 推奨
 ```
 
-## B-4) コンテナのビルドと起動
+## B-5) コンテナのビルドと起動
 このリポジトリ直下で:
 
 ```bash
@@ -284,7 +375,7 @@ docker compose -f docker-compose.prod.yml logs -f
 
 本番用では Gunicorn を使用し、ポート80（HTTP）でアクセス可能です。開発用は Flask開発サーバーでポート5002です。
 
-## B-5) 動作確認
+## B-6) 動作確認
 **本番用構成の場合:**
 - サーバ自身から: `curl http://localhost/` または `curl http://localhost:80/`
 - 外部 PC から: ブラウザで `http://<LightsailのPublicDNSまたはIP>/`
@@ -295,7 +386,7 @@ docker compose -f docker-compose.prod.yml logs -f
 - 外部 PC から: ブラウザで `http://<LightsailのPublicDNSまたはIP>:5002/`
 - ファイアウォールでポート5002を開放する必要があります
 
-## B-6) 簡易テスト（ホストPCからリモートに対して）
+## B-7) 簡易テスト（ホストPCからリモートに対して）
 ```
 # LLMなし（疎通）
 python3 tests/scenario_test_ai_chat.py --skip-llm --host <EC2-IP> --port 5002
@@ -305,20 +396,27 @@ python3 tests/load_test_ai_chat.py --host <EC2-IP> --port 5002 \
   --concurrency 50 --iterations 50 --turns 1 --jitter-ms 300
 ```
 
-## B-7) よくあるハマり
-- ブラウザで見えない: アプリが `127.0.0.1` で待受していないか（本リポジトリは `run.py` を `0.0.0.0` に修正済み）。SG/Firewall で 5002 開放を確認。
-- healthcheck 失敗: コンテナ内で curl 不在だと失敗します（Dockerfile に curl を追加済み）。
-- 429（レート制限）: `--jitter-ms` を付与、`--concurrency` を調整、`OPENAI_RESPONSES_MODEL` を変更、DEBUG を 0 に。
+## B-8) よくあるハマり
+
+### ファイル転送関連
+- **SCP/rsync接続失敗**: プライベートIP（172.x.x.x）ではなく、パブリックIPを使用してください
+- **SSH接続タイムアウト**: 静的IPが割り当てられていない場合があります。AWS CLIで静的IP確認・割り当てを行ってください
+- **Permission denied**: SSH鍵のパスとファイル権限（400）を確認してください
+
+### アプリケーション関連
+- **ブラウザで見えない**: アプリが `127.0.0.1` で待受していないか（本リポジトリは `run.py` を `0.0.0.0` に修正済み）。ファイアウォールで必要ポート開放を確認
+- **healthcheck 失敗**: コンテナ内で curl 不在だと失敗します（Dockerfile に curl を追加済み）
+- **429（レート制限）**: `--jitter-ms` を付与、`--concurrency` を調整、`OPENAI_RESPONSES_MODEL` を変更、DEBUG を 0 に
 
 ---
 
 ## 📝 費用見積もり（AWS Lightsail）
 
 **A案（フルセットアップ）推奨構成:**
-- Lightsail $5/月プラン (1GB RAM, 1 vCPU, 40GB SSD)
+- Lightsail $10/月プラン (2GB RAM, 1 vCPU, 60GB SSD)
 - 追加ディスク 20GB: $2/月
 - 静的IP: 無料（アタッチ済みの場合）
-- **合計: 月額 $7**
+- **合計: 月額 $12**
 
 ## 🔧 メンテナンス・運用
 
@@ -334,6 +432,16 @@ sudo apt update && sudo apt upgrade -y
 
 # データバックアップ
 sudo tar czf backup-$(date +%Y%m%d).tar.gz /mnt/data
+
+# ローカルからファイル更新（ローカルマシンで実行）
+rsync -avz --progress -e "ssh -i ~/.ssh/lightsail-apne1.pem" \
+  --exclude='.git' --exclude='__pycache__' --exclude='.venv' --exclude='data/' \
+  . ubuntu@[パブリックIP]:~/multiagentahp/
+
+# アプリケーション再デプロイ（サーバー側）
+cd ~/multiagentahp
+docker compose -f docker-compose.prod.yml down
+docker compose -f docker-compose.prod.yml up -d --build
 ```
 
 ---
@@ -343,4 +451,3 @@ sudo tar czf backup-$(date +%Y%m%d).tar.gz /mnt/data
 - **B案**: 既存のLightsail/EC2インスタンスを活用する場合
 
 この手順は、現在の `Dockerfile.prod`（Gunicorn）と `docker-compose.prod.yml`に最適化されています。
-

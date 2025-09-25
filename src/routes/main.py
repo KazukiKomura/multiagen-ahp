@@ -7,6 +7,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, sessio
 import uuid
 from ..repository.session_repository import session_repository
 from ..utils.data import get_student_for_trial, format_student_for_display
+from datetime import datetime
 
 main_bp = Blueprint('main', __name__)
 
@@ -78,6 +79,16 @@ def save_questionnaire():
         
         # Update with new responses
         questionnaire_data[phase] = responses
+
+        # Persist post responses per trial (history), keeping top-level 'post' latest for compatibility
+        if phase == 'post':
+            try:
+                trial_num = session.get('trial', 1)
+                post_by_trial = questionnaire_data.get('post_by_trial') or {}
+                post_by_trial[str(trial_num)] = responses
+                questionnaire_data['post_by_trial'] = post_by_trial
+            except Exception:
+                pass
         
         print(f"保存する質問紙データ: {questionnaire_data}")
         
@@ -200,9 +211,10 @@ def save_decision():
         decision_data = session_data.get('decision_data', {}) if session_data else {}
         
         # Update decision data（初回判断）
+        user_weights = data.get('weights', {})
         decision_data.update({
             'user_decision': data.get('decision'),
-            'user_weights': data.get('weights', {}),
+            'user_weights': user_weights,
             'reasoning': data.get('reasoning', ''),
             'trial': session.get('trial', 1),
             'timestamp': data.get('timestamp')
@@ -230,7 +242,7 @@ def save_decision():
             if isinstance(incoming, list) and len(incoming) >= 3 and all(_is_valid(incoming[i]) for i in range(3)):
                 opinions = incoming[:3]
             else:
-                opinions = generate_participant_opinions(user_initial, criteria, trial, session_id)
+                opinions = generate_participant_opinions(user_initial, user_weights, criteria, trial, session_id)
 
             decision_data['participant_opinions'] = opinions
             decision_data['participant_decisions'] = [op['decision'] for op in opinions]
@@ -450,3 +462,49 @@ def admin_data():
 def chat_test():
     """AIチャット機能のテストページ（論理エンジン統合版）"""
     return render_template('chat_test.html')
+
+
+@main_bp.route('/mark_final_phase_entered', methods=['POST'])
+def mark_final_phase_entered():
+    """最終意思決定フェーズ（フェーズ3）に入場した瞬間を記録（サーバ時刻）。
+
+    保存先: sessions.decision_data.trial_timings[trial].final_entered_at_server
+            （参考）client送信値は final_entered_at_client に保存
+    """
+    if 'session_id' not in session:
+        return jsonify({'error': 'No session'}), 400
+
+    try:
+        payload = request.get_json(silent=True) or {}
+        client_ts = payload.get('timestamp')
+
+        sess_id = session['session_id']
+        sdata = session_repository.get_session(sess_id) or {}
+        decision_data = sdata.get('decision_data', {}) or {}
+
+        trial = session.get('trial', decision_data.get('trial', 1))
+        trial_key = str(trial)
+
+        timings = decision_data.get('trial_timings') or {}
+        t = timings.get(trial_key) or {}
+
+        # 既に記録がある場合は上書きしない（最初の入場のみ）
+        if not t.get('final_entered_at_server'):
+            try:
+                now_ts = session_repository._now_jst_str()  # reuse JST helper
+            except Exception:
+                now_ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            t['final_entered_at_server'] = now_ts
+
+        if client_ts and not t.get('final_entered_at_client'):
+            t['final_entered_at_client'] = client_ts
+
+        timings[trial_key] = t
+        decision_data['trial_timings'] = timings
+        decision_data.setdefault('trial', trial)
+
+        session_repository.update_session(sess_id, decision_data=decision_data)
+        return jsonify({'success': True})
+
+    except Exception as e:
+        return jsonify({'error': f'Server error: {str(e)}'}), 500

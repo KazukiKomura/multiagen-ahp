@@ -104,7 +104,7 @@ endblock %} {% block content %}
                             ></div>
                         </div>
                         <div class="category-description">
-                            大学での総合成績（GPA・単位取得率）
+                            大学での総合成績（GPA）
                         </div>
                     </div>
                 </div>
@@ -127,7 +127,7 @@ endblock %} {% block content %}
                                 >/170
                             </div>
                             <div class="subscore">
-                                適性:
+                                適性・性格:
                                 <strong>{{ info.student.gre_writing }}</strong
                                 >/6.0
                             </div>
@@ -164,7 +164,7 @@ endblock %} {% block content %}
                             ></div>
                         </div>
                         <div class="category-description">
-                            長期インターン・実践プロジェクト経験
+                            長期インターン・実践プロジェクト経験スコア
                         </div>
                     </div>
                 </div>
@@ -185,7 +185,7 @@ endblock %} {% block content %}
                             {% endfor %}
                         </div>
                         <div class="category-description">
-                            面接官評価・OB訪問・課題スコア
+                            面接官評価・OB訪問
                         </div>
                     </div>
                 </div>
@@ -540,7 +540,7 @@ endblock %} {% block content %}
                         </div>
                     </div>
 
-                    <div class="change-reasoning">
+                    <!--<div class="change-reasoning">
                         <h4>変更理由（変更がある場合）</h4>
                         <textarea
                             name="change_reasoning"
@@ -569,7 +569,7 @@ endblock %} {% block content %}
                                 <span>完全に信頼している</span>
                             </div>
                         </div>
-                    </div>
+                    </div>-->
 
                     <button type="submit" class="btn btn-primary">
                         最終決定を確定する
@@ -775,6 +775,11 @@ endblock %} {% block content %}
         let botOpinions = [];
         const criteriaOrder = {{ info.criteria | tojson }}; // 表示順序を固定
     let conversationCount = 0;
+
+    // 最終意思決定フェーズに入った瞬間の時刻（クライアント時刻）を保持
+    let finalPhaseEnteredAt = null;
+    // サーバ記録用の一度きりPOSTフラグ
+    let finalPhasePosted = false;
 
     // 表示名のマッピング（UI文言の整合）
     function displayName(c) {
@@ -1394,7 +1399,8 @@ endblock %} {% block content %}
                 change_reasoning: formData.get('change_reasoning') || '',
                 confidence: parseInt(formData.get('confidence')),
                 initial_decision: initialDecisionData,
-                timestamp: new Date().toISOString()
+                // 最終フェーズ入場時刻を timestamp として送信（分析用）
+                timestamp: finalPhaseEnteredAt || new Date().toISOString()
             };
 
             // 最終重みを取得
@@ -1457,6 +1463,28 @@ endblock %} {% block content %}
         // フェーズ変更時の処理
         document.addEventListener('phaseChange', function(e) {
             if (e.detail.phase === 3) {
+                // フェーズ3（最終意思決定）に入った瞬間の時刻を記録
+                if (!finalPhaseEnteredAt) {
+                    finalPhaseEnteredAt = new Date().toISOString();
+                    console.log('✓ 最終意思決定フェーズ入場時刻（client）:', finalPhaseEnteredAt);
+                }
+                // サーバ側にも一度だけ記録（JSTサーバ時刻で保存）
+                if (!finalPhasePosted) {
+                    finalPhasePosted = true;
+                    try {
+                        fetch('/mark_final_phase_entered', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ timestamp: finalPhaseEnteredAt })
+                        }).then(r => r.json()).then(resp => {
+                            console.log('✓ 最終フェーズ入場サーバ記録:', resp);
+                        }).catch(err => {
+                            console.warn('最終フェーズ入場記録に失敗（通信）:', err);
+                        });
+                    } catch (e) {
+                        console.warn('最終フェーズ入場記録に失敗:', e);
+                    }
+                }
                 updateInitialDecisionSummary();
             }
         });

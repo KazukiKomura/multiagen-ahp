@@ -690,8 +690,9 @@ content %}
                 1=まったく当てはまらない / 7=非常に当てはまる
             </div>
             {% set xss_items = [ '説明は理解しやすかった',
-            '説明は自分の疑問に十分に答えていた', '説明は意思決定に役立った' ]
-            %} {% for i in range(1, 4) %}
+            '他AI参加者の決定理由の説明は自分の疑問に十分に答えていた',
+            '他AI参加者の決定理由の説明は意思決定に役立った' ] %} {% for i in
+            range(1, 4) %}
             <div class="item-block">
                 <div class="item-text">B{{ i }}. {{ xss_items[i-1] }}</div>
                 <input
@@ -919,18 +920,24 @@ content %}
             </div>
         </div>
 
-        <!-- E) 自分の意思決定への納得感（単一項目） 7件法 -->
+        <!-- E) SWD（Satisfaction With Decision）6項目 7件法 -->
         <div class="question-group">
-            <div class="section-title">E) 自分の意思決定への納得</div>
+            <div class="section-title">E) 意思決定への満足 (SWD)</div>
             <div class="subtle">
                 1=まったく当てはまらない / 7=非常に当てはまる
             </div>
+            {% set swd_items = [ '私はこの合否決定について十分な情報を得られた',
+            '私が下した合否決定は、自分にとって最善だと思う',
+            '私が下した合否決定は、自分の価値観と一致している',
+            '私はこの合否決定を今後も継続して実行できると思う',
+            '私は、この合否決定に関して自分が望むだけ意思決定に関与できた',
+            '私はこの合否決定に満足している' ] %} {% for i in range(1, 7) %}
             <div class="item-block">
-                <div class="item-text">自分の最終判断に満足している</div>
+                <div class="item-text">E{{ i }}. {{ swd_items[i-1] }}</div>
                 <input
                     type="range"
-                    id="sat_self"
-                    name="sat_self"
+                    id="swd_{{ i }}"
+                    name="swd_{{ i }}"
                     min="1"
                     max="7"
                     value="4"
@@ -952,9 +959,10 @@ content %}
                 </div>
                 <div>
                     選択値:
-                    <strong><span id="sat_self_value">未選択</span></strong>
+                    <strong><span id="swd_{{ i }}_value">未選択</span></strong>
                 </div>
             </div>
+            {% endfor %}
         </div>
 
         <!-- F) チームの意思決定への納得感（単一項目） 7件法 -->
