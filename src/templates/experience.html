@@ -1329,6 +1329,10 @@ endblock %} {% block content %}
             // ローディング表示開始
             showLoading(true);
 
+            const controller = new AbortController();
+            const timeoutMs = 60000;
+            const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
             fetch('/ai_chat', {
                 method: 'POST',
                 headers: {
@@ -1338,12 +1342,20 @@ endblock %} {% block content %}
                     message: message,
                     decision: initialDecisionData.decision,
                     conversation_count: conversationCount
-                })
+                }),
+                signal: controller.signal
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                return response.json();
+            })
             .then(data => {
-                // ローディング表示終了
-                showLoading(false);
+                if (!data || data.success === false || (!data.message && !data.response)) {
+                    addMessage('AIの応答を取得できませんでした。同じ内容を再入力してください。', false);
+                    return;
+                }
 
                 setTimeout(() => {
                     const aiMsg = data.message || data.response || '...';
@@ -1358,9 +1370,16 @@ endblock %} {% block content %}
                 }, 500);
             })
             .catch(error => {
-                console.error('Error:', error);
+                if (error.name === 'AbortError') {
+                    addMessage('サーバーが混み合っているため応答がありませんでした。同じ内容を再入力してください。', false);
+                } else {
+                    console.error('Error:', error);
+                    addMessage('通信エラーが発生しました。同じ内容を再入力してください。', false);
+                }
+            })
+            .finally(() => {
+                clearTimeout(timeoutId);
                 showLoading(false);
-                addMessage('申し訳ございません。エラーが発生しました。1分ほど時間を空けて同じ内容を送信してみてください。', false);
             });
         }
 
