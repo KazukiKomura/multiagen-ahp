@@ -1186,14 +1186,13 @@ endblock %} {% block content %}
                     <div class="weight-bars">
                         ${criteriaOrder.map((criterion) => {
                             const weight = opinion.weights[criterion] ?? 0;
-                            const roundedWeight = Math.round(weight / 10) * 10;
                             return `
                             <div class="weight-bar-small">
                                 <span class="criterion">${displayName(criterion)}:</span>
                                 <div class="bar">
-                                    <div class="fill" style="width: ${roundedWeight}%"></div>
+                                    <div class="fill" style="width: ${weight}%"></div>
                                 </div>
-                                <span class="value">${roundedWeight}%</span>
+                                <span class="value">${weight}%</span>
                             </div>
                             `;
                         }).join('')}
@@ -1246,14 +1245,13 @@ endblock %} {% block content %}
                         <div class="weight-bars-mini">
                             ${criteriaOrder.map((criterion) => {
                                 const weight = opinion.weights[criterion] ?? 0;
-                                const roundedWeight = Math.round(weight / 10) * 10;
                                 return `
                                 <div class="weight-bar-mini">
                                     <span class="criterion-mini">${displayName(criterion)}:</span>
                                     <div class="bar-mini">
-                                        <div class="fill-mini" style="width: ${roundedWeight}%"></div>
+                                        <div class="fill-mini" style="width: ${weight}%"></div>
                                     </div>
-                                    <span class="value-mini">${roundedWeight}%</span>
+                                    <span class="value-mini">${weight}%</span>
                                 </div>
                                 `;
                             }).join('')}

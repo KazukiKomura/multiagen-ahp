@@ -326,21 +326,36 @@ def generate_participant_opinions(user_decision: str,
                     weights[criterion] = w
                     remaining -= w
 
-        # 最終検証：合計が100になるよう正規化
+        # 最終検証：合計が100になるよう10%刻みで正規化
         total = sum(weights.values())
         if total != 100:
-            # 比例配分で調整
+            # 10%刻みで分配（必ず合計100%になるよう調整）
+            criteria_list = list(weights.keys())
+            n = len(criteria_list)
+            
+            # 各項目の重要度に基づいて10%刻みで分配
             factor = 100.0 / total
+            temp_weights = {}
+            for criterion, weight in weights.items():
+                temp_weights[criterion] = weight * factor
+            
+            # 重要度順にソートして10%刻みで分配
+            sorted_items = sorted(temp_weights.items(), key=lambda x: x[1], reverse=True)
             adjusted_weights = {}
-            running_total = 0
-            for i, (criterion, weight) in enumerate(weights.items()):
-                if i == len(weights) - 1:
-                    # 最後の項目で端数調整
-                    adjusted_weights[criterion] = 100 - running_total
+            remaining = 100
+            
+            # 最初のn-1項目は10%刻みで分配
+            for i, (criterion, temp_weight) in enumerate(sorted_items):
+                if i == n - 1:
+                    # 最後の項目は残りを割り当て（10%以上を保証）
+                    adjusted_weights[criterion] = max(10, remaining)
                 else:
-                    adjusted_weight = int(weight * factor)
+                    # 10%刻みで分配、最小10%、残り分配可能な範囲内
+                    max_possible = remaining - (n - i - 1) * 10  # 他の項目に最低10%ずつ残す
+                    adjusted_weight = min(max_possible, max(10, round(temp_weight / 10) * 10))
                     adjusted_weights[criterion] = adjusted_weight
-                    running_total += adjusted_weight
+                    remaining -= adjusted_weight
+            
             weights = adjusted_weights
 
         return weights
