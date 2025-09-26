@@ -306,6 +306,12 @@ def _call_llm(messages: List[Dict[str, str]], context: Dict[str, Any], model: st
     system_text = _get_system_prompt()
     input_payload = _build_responses_input(messages, system_text, context)
 
+    # AIへの入力全体の文字数を計測してログ出力
+    try:
+        print(f"[AI_IO] AI入力文字数: {len(json.dumps(input_payload, ensure_ascii=False))}")
+    except Exception:
+        pass
+
     # Optional debug of payload
     try:
         if str(os.getenv('DEBUG_LLM_CONTEXT', '')).lower() in ('1', 'true', 'yes', 'on'):
@@ -319,10 +325,11 @@ def _call_llm(messages: List[Dict[str, str]], context: Dict[str, Any], model: st
     except Exception:
         pass
     def _do_call(_client):
+        print(f"[model]{model}")
         resp = _client.responses.create(
             model=model,
             input=input_payload,
-            temperature=0.4,
+            temperature=0.0,
             max_output_tokens=1024,
             top_p=1
         )
@@ -334,9 +341,11 @@ def _call_llm(messages: List[Dict[str, str]], context: Dict[str, Any], model: st
         except Exception:
             return str(resp)
 
+    assistant_text = None
+
     # 1) プライマリキーで実行
     try:
-        return _do_call(client)
+        assistant_text = _do_call(client)
     except Exception as primary_error:
         # 2) セカンダリキーが設定されていればフェイルオーバー
         api_key2 = os.getenv("OPENAI_API_KEY2")
@@ -345,12 +354,20 @@ def _call_llm(messages: List[Dict[str, str]], context: Dict[str, Any], model: st
                 if str(os.getenv('DEBUG_LLM_CONTEXT', '')).lower() in ('1', 'true', 'yes', 'on'):
                     print("[LLM FAILOVER] プライマリ失敗。OPENAI_API_KEY2 で再試行します。")
                 alt_client = _create_openai_client_with_key(api_key2)
-                return _do_call(alt_client)
+                assistant_text = _do_call(alt_client)
             except Exception as secondary_error:
                 # どちらも失敗した場合は、元のエラー内容と併せて上げる
                 raise RuntimeError(f"Primary OpenAI failed: {primary_error}; Secondary failed: {secondary_error}")
-        # セカンダリがない/利用不可なら元のエラーをそのまま
-        raise
+        else:
+            # セカンダリがない/利用不可なら元のエラーをそのまま
+            raise
+
+    if assistant_text is None:
+        raise RuntimeError("AIレスポンスが取得できませんでした。")
+
+    print(f"[AI_IO] AI出力文字数: {len(assistant_text)}")
+
+    return assistant_text
 
 
 @ai_chat_bp.route('/setup_chat', methods=['POST'])

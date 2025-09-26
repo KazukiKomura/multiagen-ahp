@@ -25,8 +25,8 @@ RUN mkdir -p data
 RUN chmod 777 data
 
 # run.py は 5002 で起動
-EXPOSE 5002
+EXPOSE 5003
 
 # アプリケーション起動（Gunicorn, 並列対応・最小変更）
 # 4 workers, 8 threads each; tune per CPU/IO profile
-CMD ["gunicorn", "-w", "4", "-k", "gthread", "--threads", "8", "--timeout", "120", "-b", "0.0.0.0:5002", "src.app:app"]
+CMD ["gunicorn", "-w", "4", "-k", "gthread", "--threads", "8", "--timeout", "120", "-b", "0.0.0.0:5003", "src.app:app"]

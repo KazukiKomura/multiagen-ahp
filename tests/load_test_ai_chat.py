@@ -118,7 +118,7 @@ async def run_load(base: str, concurrency: int, turns: int, iterations: int, jit
 def main():
     ap = argparse.ArgumentParser(description='Concurrent load test for /ai_chat flow')
     ap.add_argument('--host', default='127.0.0.1')
-    ap.add_argument('--port', default='5002')
+    ap.add_argument('--port', default='5003')
     ap.add_argument('--concurrency', type=int, default=50, help='Concurrent users in a wave')
     ap.add_argument('--iterations', type=int, default=50, help='Total user flows to run')
     ap.add_argument('--turns', type=int, default=0, help='Chat turns per user (0 to skip /ai_chat)')

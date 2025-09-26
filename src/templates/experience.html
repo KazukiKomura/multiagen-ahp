@@ -395,7 +395,7 @@ endblock %} {% block content %}
                         <li>必要に応じて他の参加者AIへの異議申し立てが可能</li>
                         <li>
                             会話を<strong
-                                >最低4回以上繰り返したのちに、最終結果を次ページで確定</strong
+                                >最低3回以上繰り返したのちに、最終結果を次ページで確定</strong
                             >
                         </li>
                     </ol>
@@ -436,7 +436,7 @@ endblock %} {% block content %}
                     <div class="chat-info">
                         <p>
                             会話回数:
-                            <span id="messageCount">0</span>（最低4回）
+                            <span id="messageCount">0</span>（最低3回）
                         </p>
                         <button
                             class="btn btn-secondary"
@@ -1363,9 +1363,9 @@ endblock %} {% block content %}
                     conversationCount++;
                     messageCount.textContent = conversationCount;
 
-                    if (conversationCount >= 4) {
+                    if (conversationCount >= 3) {
                         finishChat.style.display = 'block';
-                        // 入力は継続可能（最低4回の達成のみ）
+                        // 入力は継続可能（最低3回の達成のみ）
                     }
                 }, 500);
             })
