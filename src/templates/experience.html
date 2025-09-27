@@ -49,7 +49,7 @@ endblock %} {% block content %}
         <ul class="guide-list">
             <li>
                 <strong>あなたと複数の価値基準を持ったAI（他AI）</strong
-                >が一次選考の担当者です。まず下の応募者情報を読み、「一次通過/見送り」を選びます。
+                >が一次選考の担当者です。まず下の応募者情報を読み、「一次通過/見送り」を選びます。選考はあなた自身の価値観などを重視し、直感に従って行ってください。
             </li>
             <li>
                 判断の根拠として、<strong>5つの基準の重要度</strong>をスライダーで設定します（合計100%）。
@@ -395,7 +395,7 @@ endblock %} {% block content %}
                         <li>必要に応じて他の参加者AIへの異議申し立てが可能</li>
                         <li>
                             会話を<strong
-                                >最低3回以上繰り返したのちに、最終結果を次ページで確定</strong
+                                >最低4回以上繰り返したのちに、最終結果を次ページで確定</strong
                             >
                         </li>
                     </ol>
@@ -436,7 +436,7 @@ endblock %} {% block content %}
                     <div class="chat-info">
                         <p>
                             会話回数:
-                            <span id="messageCount">0</span>（最低3回）
+                            <span id="messageCount">0</span>（最低4回）
                         </p>
                         <button
                             class="btn btn-secondary"
@@ -1186,13 +1186,14 @@ endblock %} {% block content %}
                     <div class="weight-bars">
                         ${criteriaOrder.map((criterion) => {
                             const weight = opinion.weights[criterion] ?? 0;
+                            const roundedWeight = Math.round(weight / 10) * 10;
                             return `
                             <div class="weight-bar-small">
                                 <span class="criterion">${displayName(criterion)}:</span>
                                 <div class="bar">
-                                    <div class="fill" style="width: ${weight}%"></div>
+                                    <div class="fill" style="width: ${roundedWeight}%"></div>
                                 </div>
-                                <span class="value">${weight}%</span>
+                                <span class="value">${roundedWeight}%</span>
                             </div>
                             `;
                         }).join('')}
@@ -1245,13 +1246,14 @@ endblock %} {% block content %}
                         <div class="weight-bars-mini">
                             ${criteriaOrder.map((criterion) => {
                                 const weight = opinion.weights[criterion] ?? 0;
+                                const roundedWeight = Math.round(weight / 10) * 10;
                                 return `
                                 <div class="weight-bar-mini">
                                     <span class="criterion-mini">${displayName(criterion)}:</span>
                                     <div class="bar-mini">
-                                        <div class="fill-mini" style="width: ${weight}%"></div>
+                                        <div class="fill-mini" style="width: ${roundedWeight}%"></div>
                                     </div>
-                                    <span class="value-mini">${weight}%</span>
+                                    <span class="value-mini">${roundedWeight}%</span>
                                 </div>
                                 `;
                             }).join('')}
@@ -1327,10 +1329,6 @@ endblock %} {% block content %}
             // ローディング表示開始
             showLoading(true);
 
-            const controller = new AbortController();
-            const timeoutMs = 60000;
-            const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
             fetch('/ai_chat', {
                 method: 'POST',
                 headers: {
@@ -1340,20 +1338,12 @@ endblock %} {% block content %}
                     message: message,
                     decision: initialDecisionData.decision,
                     conversation_count: conversationCount
-                }),
-                signal: controller.signal
+                })
             })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
-                }
-                return response.json();
-            })
+            .then(response => response.json())
             .then(data => {
-                if (!data || data.success === false || (!data.message && !data.response)) {
-                    addMessage('AIの応答を取得できませんでした。同じ内容を再入力してください。', false);
-                    return;
-                }
+                // ローディング表示終了
+                showLoading(false);
 
                 setTimeout(() => {
                     const aiMsg = data.message || data.response || '...';
@@ -1361,23 +1351,16 @@ endblock %} {% block content %}
                     conversationCount++;
                     messageCount.textContent = conversationCount;
 
-                    if (conversationCount >= 3) {
+                    if (conversationCount >= 4) {
                         finishChat.style.display = 'block';
-                        // 入力は継続可能（最低3回の達成のみ）
+                        // 入力は継続可能（最低4回の達成のみ）
                     }
                 }, 500);
             })
             .catch(error => {
-                if (error.name === 'AbortError') {
-                    addMessage('サーバーが混み合っているため応答がありませんでした。同じ内容を再入力してください。', false);
-                } else {
-                    console.error('Error:', error);
-                    addMessage('通信エラーが発生しました。同じ内容を再入力してください。', false);
-                }
-            })
-            .finally(() => {
-                clearTimeout(timeoutId);
+                console.error('Error:', error);
                 showLoading(false);
+                addMessage('申し訳ございません。エラーが発生しました。1分ほど時間を空けて同じ内容を送信してみてください。', false);
             });
         }
 
