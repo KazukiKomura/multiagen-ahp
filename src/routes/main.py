@@ -7,6 +7,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, sessio
 import uuid
 from ..repository.session_repository import session_repository
 from ..utils.data import get_student_for_trial, format_student_for_display
+from ..utils.argumentation_analysis import analyze_debate_context, format_analysis_for_display
 from datetime import datetime
 
 main_bp = Blueprint('main', __name__)
@@ -462,6 +463,60 @@ def admin_data():
 def chat_test():
     """AIチャット機能のテストページ（論理エンジン統合版）"""
     return render_template('chat_test.html')
+
+
+@main_bp.route('/api/argumentation_analysis', methods=['GET'])
+def get_argumentation_analysis():
+    """論点分析結果を取得（条件2で使用）"""
+    if 'session_id' not in session:
+        return jsonify({'error': 'No session'}), 400
+    
+    try:
+        session_id = session['session_id']
+        session_data = session_repository.get_session(session_id)
+        
+        if not session_data:
+            return jsonify({'error': 'Session not found'}), 404
+        
+        # 論点分析に必要なコンテキストを構築
+        decision_data = session_data.get('decision_data', {})
+        student_data = session_data.get('student_data', {})
+        
+        context = {
+            'user_initial_decision': decision_data.get('user_decision'),
+            'user_initial_weights': decision_data.get('user_weights', {}),
+            'participant_opinions': decision_data.get('participant_opinions', []),
+            'student_info': student_data
+        }
+        
+        print(f"[DEBUG] 論点分析API: コンテキスト確認")
+        print(f"  - セッションID: {session_id}")
+        print(f"  - ユーザー判断: {context.get('user_initial_decision')}")
+        print(f"  - 参加者意見数: {len(context.get('participant_opinions', []))}")
+        
+        # 論点分析を実行
+        analysis_result = analyze_debate_context(context)
+        
+        if not analysis_result.get('success'):
+            return jsonify({
+                'error': 'Analysis failed',
+                'details': analysis_result.get('error', 'Unknown error')
+            }), 500
+        
+        # UI表示用にフォーマット
+        formatted_result = format_analysis_for_display(analysis_result, context)
+        
+        return jsonify({
+            'success': True,
+            'analysis': analysis_result,
+            'formatted': formatted_result,
+            'markdown_content': formatted_result.get('markdown_content', ''),
+            'conflict_count': formatted_result.get('conflict_count', 0)
+        })
+        
+    except Exception as e:
+        print(f"[ERROR] 論点分析API エラー: {e}")
+        return jsonify({'error': f'Server error: {str(e)}'}), 500
 
 
 @main_bp.route('/mark_final_phase_entered', methods=['POST'])

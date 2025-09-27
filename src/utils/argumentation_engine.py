@@ -465,6 +465,14 @@ def generate_two_track_debate_summary(conflict_points: List[Dict[str, Any]], arg
     }
 
 
+def _display_label(name: str) -> str:
+    """UI表示用の基準名マッピング"""
+    try:
+        return '学歴・所属' if name == '志望動機・フィット' else name
+    except Exception:
+        return name
+
+
 def _generate_two_track_question_direction(detailed_points: List[Dict[str, Any]]) -> str:
     """
     2本立て論点に基づく質問方向性を生成します。
@@ -474,11 +482,14 @@ def _generate_two_track_question_direction(detailed_points: List[Dict[str, Any]]
     
     if len(detailed_points) == 1:
         point = detailed_points[0]
-        return f"最大の論点である「{point['criterion']}」の評価について、{point['group']}との対立理由について"
+        criterion_display = _display_label(point['criterion'])
+        return f"最大の論点である「{criterion_display}」の評価について、{point['group']}との対立理由について"
     
     # 2つの論点がある場合
     point1, point2 = detailed_points[0], detailed_points[1]
-    return f"「{point1['criterion']}」({point1['group']})と「{point2['criterion']}」({point2['group']})の2つの論点について、それぞれの重視理由について"
+    criterion1_display = _display_label(point1['criterion'])
+    criterion2_display = _display_label(point2['criterion'])
+    return f"「{criterion1_display}」({point1['group']})と「{criterion2_display}」({point2['group']})の2つの論点について、それぞれの重視理由について"
 
 
 def summarize_debate(arguments: List[Dict[str, Any]], attacks: List[Tuple[str, str]], user_weights: Dict[str, float] = None) -> Dict[str, str]:

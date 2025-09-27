@@ -238,7 +238,7 @@ endblock %} {% block content %}
             {% if trial != 1 %}
             <div class="step" data-step="2">
                 <span class="step-number">3</span>
-                <span class="step-label">AIチャット</span>
+                <span class="step-label">議論分析</span>
             </div>
             <div class="step" data-step="3">
                 <span class="step-number">4</span>
@@ -368,14 +368,14 @@ endblock %} {% block content %}
                 </div>
             </div>
             <button class="btn btn-primary" onclick="nextPhase()">
-                {% if trial == 1 %} 最終決定へ進む {% else %} AIチャットへ進む
+                {% if trial == 1 %} 最終決定へ進む {% else %} 議論分析へ進む
                 {% endif %}
             </button>
         </div>
 
-        <!-- フェーズ3: AIチャット -->
+        <!-- フェーズ3: 議論分析（AIファシリテーション） -->
         <div class="phase-content" data-phase="2">
-            <h3 id="ai-chat-title">AIファシリテーターとの対話</h3>
+            <h3 id="facilitation-title">AIファシリテーターによる論点整理</h3>
             <div class="ai-rules-notice">
                 <div class="rules-title">【手続とルールのご案内】</div>
                 <div class="rules-section">
@@ -389,15 +389,9 @@ endblock %} {% block content %}
 
                     <div class="rules-subheading">今後の流れ</div>
                     <ol>
-                        <li>
-                            以下でファシリテータから質問を行い、意見を整理する
-                        </li>
-                        <li>必要に応じて他の参加者AIへの異議申し立てが可能</li>
-                        <li>
-                            会話を<strong
-                                >最低4回以上繰り返したのちに、最終結果を次ページで確定</strong
-                            >
-                        </li>
+                        <li>以下でファシリテータから論点の整理と提示が行われます</li>
+                        <li>提示された論点を確認して最終決定の参考にしてください</li>
+                        <li>準備が整ったら下部のボタンから最終決定へ進みます</li>
                     </ol>
                 </div>
             </div>
@@ -408,7 +402,7 @@ endblock %} {% block content %}
                         <!-- JavaScript で動的に表示 -->
                     </div>
                 </div>
-                <div class="chat-area">
+                <div class="chat-area" id="chat-area">
                     <div class="chat-messages" id="chatMessages">
                         <!-- AI初期メッセージは動的に読み込み -->
                     </div>
@@ -418,9 +412,7 @@ endblock %} {% block content %}
                         style="display: none"
                     >
                         <div class="loading-spinner"></div>
-                        <div class="loading-text">
-                            AIが回答を考えています...
-                        </div>
+                        <div class="loading-text">AIが論点を整理しています...</div>
                     </div>
                     <div class="chat-input-container">
                         <input
@@ -429,9 +421,7 @@ endblock %} {% block content %}
                             placeholder="メッセージを入力してください..."
                             maxlength="500"
                         />
-                        <button id="sendButton" class="btn btn-primary">
-                            送信
-                        </button>
+                        <button id="sendButton" class="btn btn-primary">送信</button>
                     </div>
                     <div class="chat-info">
                         <p>
@@ -448,8 +438,26 @@ endblock %} {% block content %}
                         </button>
                     </div>
                 </div>
+                <!-- 条件2専用：論点分析結果表示エリア -->
+                <div class="analysis-area" id="analysis-area" style="display: none;">
+                    <h4>📊 議論分析結果</h4>
+                    <div class="analysis-content">
+                        <div id="analysis-loading" class="loading-indicator" style="display: none;">
+                            <div class="loading-spinner"></div>
+                            <div class="loading-text">論点を分析中...</div>
+                        </div>
+                        <div id="analysis-results" style="display: none;"></div>
+                        <div id="analysis-error" style="display: none;" class="error-message">
+                            ❌ 論点分析中にエラーが発生しました。
+                        </div>
+                    </div>
+                    <div class="analysis-actions">
+                        <button class="btn btn-primary" onclick="nextPhase()">最終決定へ進む</button>
+                    </div>
+                </div>
             </div>
         </div>
+
 
         <!-- フェーズ4: 最終決定 -->
         <div class="phase-content" data-phase="3">
@@ -589,7 +597,7 @@ endblock %} {% block content %}
 </div>
 {% endblock %} {% block scripts %}
 <style>
-    /* AIチャット注意事項 */
+    /* ファシリテーション注意事項 */
     .ai-rules-notice {
         background: #f9fafb;
         border: 1px solid #e5e7eb;
@@ -655,9 +663,205 @@ endblock %} {% block content %}
         font-size: 0.95em;
     }
     /* スクロール位置の余白（見出しが上に貼り付かないように） */
-    #ai-chat-title {
+    #facilitation-title {
         scroll-margin-top: 24px;
     }
+
+    /* 論点提示パネル（条件2専用）のスタイル */
+    #argumentation-panel {
+        max-width: 800px;
+        margin: 20px auto;
+        padding: 20px;
+        background: #ffffff;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    #argumentation-panel h3 {
+        color: #2563eb;
+        margin-bottom: 20px;
+        font-size: 1.5em;
+    }
+
+    .analysis-content {
+        margin-bottom: 20px;
+    }
+
+    .analysis-summary {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        padding: 16px;
+        margin-bottom: 16px;
+    }
+
+    .analysis-summary h4 {
+        color: #1e40af;
+        margin-bottom: 12px;
+        font-size: 1.1em;
+    }
+
+    .conflict-points {
+        background: #fef3c7;
+        border: 1px solid #f59e0b;
+        border-radius: 6px;
+        padding: 16px;
+        margin-bottom: 16px;
+    }
+
+    .conflict-points h4 {
+        color: #92400e;
+        margin-bottom: 12px;
+        font-size: 1.1em;
+    }
+
+    .conflict-point {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 4px;
+        padding: 12px;
+        margin-bottom: 8px;
+    }
+
+    .conflict-point h5 {
+        color: #374151;
+        margin-bottom: 8px;
+        font-size: 1em;
+    }
+
+    .conflict-point small {
+        color: #6b7280;
+        font-size: 0.85em;
+    }
+
+    .suggested-questions {
+        background: #ecfdf5;
+        border: 1px solid #10b981;
+        border-radius: 6px;
+        padding: 16px;
+    }
+
+    .suggested-questions h4 {
+        color: #047857;
+        margin-bottom: 12px;
+        font-size: 1.1em;
+    }
+
+    .error-message {
+        background: #fef2f2;
+        border: 1px solid #f87171;
+        border-radius: 6px;
+        padding: 12px;
+        color: #dc2626;
+        font-weight: 500;
+    }
+
+    /* AI参加者の意見表示用スタイル */
+    .participant-opinions {
+        background: #f0f9ff;
+        border: 1px solid #38bdf8;
+        border-radius: 6px;
+        padding: 16px;
+        margin-bottom: 16px;
+    }
+
+    .participant-opinions h4 {
+        color: #0369a1;
+        margin-bottom: 16px;
+        font-size: 1.1em;
+    }
+
+    .participants-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 12px;
+        margin-top: 12px;
+    }
+
+    .participant-card {
+        background: #ffffff;
+        border: 2px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 12px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .participant-card.user-card {
+        border-color: #10b981;
+        background: #f0fdf4;
+    }
+
+    .participant-card.ai-card {
+        border-color: #3b82f6;
+        background: #f8fafc;
+    }
+
+    .participant-card h5 {
+        margin: 0 0 8px 0;
+        font-size: 1em;
+        font-weight: 600;
+    }
+
+    .participant-card .decision {
+        margin: 8px 0;
+        font-size: 0.95em;
+    }
+
+    .participant-card .weights {
+        margin-top: 8px;
+        font-size: 0.9em;
+    }
+
+    .participant-card .weights strong {
+        color: #374151;
+        display: block;
+        margin-bottom: 4px;
+    }
+
+    .weight-item {
+        background: #f9fafb;
+        border: 1px solid #e5e7eb;
+        border-radius: 4px;
+        padding: 4px 8px;
+        margin: 2px 0;
+        font-size: 0.85em;
+        color: #4b5563;
+    }
+
+    .user-card .weight-item {
+        background: #ecfdf5;
+        border-color: #d1fae5;
+        color: #065f46;
+    }
+
+    .ai-card .weight-item {
+        background: #eff6ff;
+        border-color: #dbeafe;
+        color: #1e40af;
+    }
+
+    /* 論点分析エリア（条件2専用）のスタイル */
+    .analysis-area {
+        flex: 1;
+        padding: 16px;
+        background: #ffffff;
+        border-radius: 8px;
+        border: 1px solid #e5e7eb;
+    }
+
+    .analysis-area h4 {
+        color: #2563eb;
+        margin-bottom: 16px;
+        font-size: 1.3em;
+    }
+
+    .analysis-actions {
+        margin-top: 20px;
+        padding-top: 16px;
+        border-top: 1px solid #e5e7eb;
+        text-align: center;
+    }
+
     /* Loading indicator styles */
     /* Final decision guidance */
     .final-guide {
@@ -741,6 +945,70 @@ endblock %} {% block content %}
     .chat-messages .message-content a {
         color: #0d6efd;
         text-decoration: underline;
+    }
+
+    /* Analysis results formatting - same as chat messages */
+    .analysis-message-content {
+        padding: 16px;
+        background: #f8fafc;
+        border-radius: 8px;
+        border: 1px solid #e2e8f0;
+        font-size: 0.95em;
+        line-height: 1.6;
+    }
+    
+    .analysis-message-content h1,
+    .analysis-message-content h2,
+    .analysis-message-content h3 {
+        margin: 12px 0 8px;
+        color: #2563eb;
+        font-weight: 600;
+    }
+    .analysis-message-content h2 {
+        font-size: 1.4em;
+        border-bottom: 2px solid #e5e7eb;
+        padding-bottom: 4px;
+    }
+    .analysis-message-content h3 {
+        font-size: 1.2em;
+    }
+    .analysis-message-content p {
+        margin: 8px 0;
+        line-height: 1.6;
+    }
+    .analysis-message-content ul,
+    .analysis-message-content ol {
+        margin: 8px 0 8px 20px;
+        line-height: 1.6;
+    }
+    .analysis-message-content li {
+        margin: 4px 0;
+    }
+    .analysis-message-content strong {
+        color: #1f2937;
+        font-weight: 600;
+    }
+    .analysis-message-content code {
+        background: #f6f8fa;
+        padding: 2px 4px;
+        border-radius: 4px;
+        font-size: 0.9em;
+    }
+    .analysis-message-content pre {
+        background: #f6f8fa;
+        padding: 12px;
+        border-radius: 6px;
+        overflow-x: auto;
+        font-size: 0.9em;
+    }
+    .analysis-message-content a {
+        color: #0d6efd;
+        text-decoration: underline;
+    }
+    .analysis-message-content hr {
+        margin: 16px 0;
+        border: none;
+        border-top: 1px solid #e5e7eb;
     }
 
     @keyframes spin {
@@ -971,7 +1239,7 @@ endblock %} {% block content %}
         function showPhase(phaseIndex) {
             const trial = {{ trial }};
 
-            // 練習セッション（trial === 1）の場合、AIチャットフェーズをスキップ
+            // 練習セッション（trial === 1）の場合、議論分析フェーズをスキップ
             if (trial === 1 && phaseIndex === 2) {
                 phaseIndex = 3; // 直接最終決定フェーズへ
             }
@@ -979,6 +1247,11 @@ endblock %} {% block content %}
             document.querySelectorAll('.phase-content').forEach(content => {
                 content.classList.remove('active');
             });
+            
+            // 条件2用の表示エリア切り替え準備
+            const chatArea = document.getElementById('chat-area');
+            const analysisArea = document.getElementById('analysis-area');
+            
             document.querySelectorAll('.step').forEach(step => {
                 step.classList.remove('active');
             });
@@ -989,15 +1262,30 @@ endblock %} {% block content %}
             currentPhase = phaseIndex;
 
         if (phaseIndex === 2 && trial !== 1) {
-            // 本番セッションのみAIチャットフェーズ開始時に手続き説明を取得
-            initializeChat();
-            // 見出し位置へスクロール（チャットの途中から始まらないように）
-            setTimeout(() => {
-                const anchor = document.getElementById('ai-chat-title');
-                if (anchor && typeof anchor.scrollIntoView === 'function') {
-                    anchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }
-            }, 50);
+            // 条件2では左右分割レイアウトで論点分析を表示、それ以外はファシリテーション対話
+            if (isCondition2()) {
+                // 左側：意見の比較を表示
+                updateComparisonView();
+                
+                // 右側：チャットエリアを隠し、論点分析エリアを表示
+                chatArea.style.display = 'none';
+                analysisArea.style.display = 'block';
+                loadArgumentationAnalysis();
+            } else {
+                // 通常のチャット：論点分析エリアを隠し、チャットエリアを表示
+                analysisArea.style.display = 'none';
+                chatArea.style.display = 'block';
+                
+                // 本番セッションのみファシリテーションフェーズ開始時に手続き説明を取得
+                initializeChat();
+                // 見出し位置へスクロール（チャットの途中から始まらないように）
+                setTimeout(() => {
+                    const anchor = document.getElementById('facilitation-title');
+                    if (anchor && typeof anchor.scrollIntoView === 'function') {
+                        anchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                }, 50);
+            }
         } else if (phaseIndex === 3) {
                 // 最終決定フェーズの重要度スライダー設定
                 setTimeout(() => {
@@ -1264,6 +1552,48 @@ endblock %} {% block content %}
             `;
         }
 
+        // 論点分析パネル用関数（条件2専用）
+        function loadArgumentationAnalysis() {
+            const loadingEl = document.getElementById('analysis-loading');
+            const resultsEl = document.getElementById('analysis-results');
+            const errorEl = document.getElementById('analysis-error');
+            
+            // ローディング表示
+            loadingEl.style.display = 'flex';
+            resultsEl.style.display = 'none';
+            errorEl.style.display = 'none';
+            
+            fetch('/api/argumentation_analysis')
+                .then(response => response.json())
+                .then(data => {
+                    loadingEl.style.display = 'none';
+                    
+                    if (data.success) {
+                        // チャットと同じmarkdown変換を使用
+                        const markdownContent = data.formatted.markdown_content || data.markdown_content || '';
+                        const htmlContent = renderMarkdown(markdownContent);
+                        // チャットメッセージ風のコンテナで包む
+                        resultsEl.innerHTML = `<div class="analysis-message-content">${htmlContent}</div>`;
+                        resultsEl.style.display = 'block';
+                        console.log('[DEBUG] 論点分析結果を表示:', data.analysis);
+                    } else {
+                        throw new Error(data.details || '分析に失敗しました');
+                    }
+                })
+                .catch(error => {
+                    console.error('[ERROR] 論点分析API エラー:', error);
+                    loadingEl.style.display = 'none';
+                    errorEl.style.display = 'block';
+                    errorEl.textContent = `❌ ${error.message}`;
+                });
+        }
+
+        // 条件2がデフォルト（このブランチでは常に条件2）
+        function isCondition2() {
+            return true;
+        }
+
+
         // チャット初期化関数（Streamlit同等: 初期2メッセージを固定で表示）
         function initializeChat() {
             // 比較サイドバーを更新
@@ -1298,10 +1628,22 @@ endblock %} {% block content %}
             });
         }
 
-        // チャット機能
+        // チャット機能（条件2では無効化）
         const chatMessages = document.getElementById('chatMessages');
         const chatInput = document.getElementById('chatInput');
         const sendButton = document.getElementById('sendButton');
+        
+        // 条件2ではチャット機能を無効化し、適切な表示制御を行う
+        if (isCondition2()) {
+            if (chatInput) chatInput.disabled = true;
+            if (sendButton) sendButton.disabled = true;
+            
+            // 初期状態では analysis-area を隠しておく（フェーズ2で表示）
+            const analysisArea = document.getElementById('analysis-area');
+            if (analysisArea) {
+                analysisArea.style.display = 'none';
+            }
+        }
         const messageCount = document.getElementById('messageCount');
         const finishChat = document.getElementById('finishChat');
 

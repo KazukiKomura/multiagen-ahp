@@ -420,7 +420,10 @@ def setup_chat():
 
 @ai_chat_bp.route('/ai_chat', methods=['POST'])
 def ai_chat():
-    """LLMへの1ターン問い合わせ（Streamlit相当の入力方式）"""
+    """LLMへの1ターン問い合わせ（条件2では無効化）"""
+    # 条件2ブランチでは AI チャット機能を無効化
+    return jsonify({'error': 'チャット機能は条件2では利用できません'}), 404
+    
     if 'session_id' not in session:
         return jsonify({'error': 'No session'}), 400
 
