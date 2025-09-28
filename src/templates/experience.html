@@ -48,8 +48,8 @@ endblock %} {% block content %}
         <div class="guide-title">このセッションでの役割と流れ</div>
         <ul class="guide-list">
             <li>
-                <strong>あなたと複数の価値基準を持ったAI（他AI）</strong
-                >が一次選考の担当者です。まず下の応募者情報を読み、「一次通過/見送り」を選びます。選考はあなた自身の価値観などを重視し、直感に従って行ってください。
+                <strong>あなたと複数の価値基準を持ったAI（参加者）3名</strong
+                >が大手企業の一次選考担当者です。まず下の応募者情報を読み、「一次通過/見送り」を選びます。
             </li>
             <li>
                 判断の根拠として、<strong>5つの基準の重要度</strong>をスライダーで設定します（合計100%）。
@@ -58,7 +58,7 @@ endblock %} {% block content %}
                 続いて、<strong>他のAI（AI）3名の意見</strong>を確認します。
             </li>
             <li>
-                必要に応じて<strong>最終判定と重要度</strong>を見直し、確定してください。
+                最後に<strong>最終判定と重要度</strong>を見直し、確定してください。
             </li>
         </ul>
         <div class="guide-note">
@@ -235,21 +235,10 @@ endblock %} {% block content %}
                 <span class="step-number">2</span>
                 <span class="step-label">他の意見確認</span>
             </div>
-            {% if trial != 1 %}
             <div class="step" data-step="2">
                 <span class="step-number">3</span>
-                <span class="step-label">議論分析</span>
-            </div>
-            <div class="step" data-step="3">
-                <span class="step-number">4</span>
                 <span class="step-label">最終決定</span>
             </div>
-            {% else %}
-            <div class="step" data-step="3">
-                <span class="step-number">3</span>
-                <span class="step-label">最終決定</span>
-            </div>
-            {% endif %}
         </div>
 
         <!-- フェーズ1: 自分の意見表明 -->
@@ -368,99 +357,14 @@ endblock %} {% block content %}
                 </div>
             </div>
             <button class="btn btn-primary" onclick="nextPhase()">
-                {% if trial == 1 %} 最終決定へ進む {% else %} 議論分析へ進む
-                {% endif %}
+                最終決定へ進む
             </button>
         </div>
 
-        <!-- フェーズ3: 議論分析（AIファシリテーション） -->
+
+
+        <!-- フェーズ3: 最終決定 -->
         <div class="phase-content" data-phase="2">
-            <h3 id="facilitation-title">AIファシリテーターによる論点整理</h3>
-            <div class="ai-rules-notice">
-                <div class="rules-title">【手続とルールのご案内】</div>
-                <div class="rules-section">
-                    <div class="rules-subtitle">
-                        本システムでは以下のルールに基づいて評価を行います：
-                    </div>
-                    <div class="rules-subheading">評価基準</div>
-                    <ul>
-                        <li>この後最終意思決定をした後の多数決</li>
-                    </ul>
-
-                    <div class="rules-subheading">今後の流れ</div>
-                    <ol>
-                        <li>以下でファシリテータから論点の整理と提示が行われます</li>
-                        <li>提示された論点を確認して最終決定の参考にしてください</li>
-                        <li>準備が整ったら下部のボタンから最終決定へ進みます</li>
-                    </ol>
-                </div>
-            </div>
-            <div class="split-view">
-                <div class="opinions-sidebar">
-                    <h4>意見の比較</h4>
-                    <div id="comparisonView">
-                        <!-- JavaScript で動的に表示 -->
-                    </div>
-                </div>
-                <div class="chat-area" id="chat-area">
-                    <div class="chat-messages" id="chatMessages">
-                        <!-- AI初期メッセージは動的に読み込み -->
-                    </div>
-                    <div
-                        class="loading-indicator"
-                        id="loadingIndicator"
-                        style="display: none"
-                    >
-                        <div class="loading-spinner"></div>
-                        <div class="loading-text">AIが論点を整理しています...</div>
-                    </div>
-                    <div class="chat-input-container">
-                        <input
-                            type="text"
-                            id="chatInput"
-                            placeholder="メッセージを入力してください..."
-                            maxlength="500"
-                        />
-                        <button id="sendButton" class="btn btn-primary">送信</button>
-                    </div>
-                    <div class="chat-info">
-                        <p>
-                            会話回数:
-                            <span id="messageCount">0</span>（最低4回）
-                        </p>
-                        <button
-                            class="btn btn-secondary"
-                            id="finishChat"
-                            style="display: none"
-                            onclick="nextPhase()"
-                        >
-                            対話を終了して最終決定へ
-                        </button>
-                    </div>
-                </div>
-                <!-- 条件2専用：論点分析結果表示エリア -->
-                <div class="analysis-area" id="analysis-area" style="display: none;">
-                    <h4>📊 議論分析結果</h4>
-                    <div class="analysis-content">
-                        <div id="analysis-loading" class="loading-indicator" style="display: none;">
-                            <div class="loading-spinner"></div>
-                            <div class="loading-text">論点を分析中...</div>
-                        </div>
-                        <div id="analysis-results" style="display: none;"></div>
-                        <div id="analysis-error" style="display: none;" class="error-message">
-                            ❌ 論点分析中にエラーが発生しました。
-                        </div>
-                    </div>
-                    <div class="analysis-actions">
-                        <button class="btn btn-primary" onclick="nextPhase()">最終決定へ進む</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-
-        <!-- フェーズ4: 最終決定 -->
-        <div class="phase-content" data-phase="3">
             <h3>最終決定</h3>
             <div class="final-guide">
                 <div class="guide-title">このステップで行うこと</div>
@@ -1237,20 +1141,9 @@ endblock %} {% block content %}
 
         // フェーズ切り替え
         function showPhase(phaseIndex) {
-            const trial = {{ trial }};
-
-            // 練習セッション（trial === 1）の場合、議論分析フェーズをスキップ
-            if (trial === 1 && phaseIndex === 2) {
-                phaseIndex = 3; // 直接最終決定フェーズへ
-            }
-
             document.querySelectorAll('.phase-content').forEach(content => {
                 content.classList.remove('active');
             });
-            
-            // 条件2用の表示エリア切り替え準備
-            const chatArea = document.getElementById('chat-area');
-            const analysisArea = document.getElementById('analysis-area');
             
             document.querySelectorAll('.step').forEach(step => {
                 step.classList.remove('active');
@@ -1261,35 +1154,10 @@ endblock %} {% block content %}
 
             currentPhase = phaseIndex;
 
-        if (phaseIndex === 2 && trial !== 1) {
-            // 条件2では左右分割レイアウトで論点分析を表示、それ以外はファシリテーション対話
-            if (isCondition2()) {
-                // 左側：意見の比較を表示
-                updateComparisonView();
-                
-                // 右側：チャットエリアを隠し、論点分析エリアを表示
-                chatArea.style.display = 'none';
-                analysisArea.style.display = 'block';
-                loadArgumentationAnalysis();
-            } else {
-                // 通常のチャット：論点分析エリアを隠し、チャットエリアを表示
-                analysisArea.style.display = 'none';
-                chatArea.style.display = 'block';
-                
-                // 本番セッションのみファシリテーションフェーズ開始時に手続き説明を取得
-                initializeChat();
-                // 見出し位置へスクロール（チャットの途中から始まらないように）
-                setTimeout(() => {
-                    const anchor = document.getElementById('facilitation-title');
-                    if (anchor && typeof anchor.scrollIntoView === 'function') {
-                        anchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }
-                }, 50);
-            }
-        } else if (phaseIndex === 3) {
+            if (phaseIndex === 2) {
                 // 最終決定フェーズの重要度スライダー設定
                 setTimeout(() => {
-                    const finalWeights = setupWeightSliders('[data-phase="3"]');
+                    const finalWeights = setupWeightSliders('[data-phase="2"]');
                     // 初期値を設定
                     if (initialDecisionData) {
                         Object.entries(initialDecisionData.weights).forEach(([criterion, weight]) => {
@@ -1316,17 +1184,8 @@ endblock %} {% block content %}
         }
 
         window.nextPhase = function() {
-            const trial = {{ trial }};
-
-            if (currentPhase < 3) {
-                let nextPhase = currentPhase + 1;
-
-                // 練習セッションの場合、フェーズ1（他の意見確認）の後は直接フェーズ3（最終決定）へ
-                if (trial === 1 && currentPhase === 1) {
-                    nextPhase = 3;
-                }
-
-                showPhase(nextPhase);
+            if (currentPhase < 2) {
+                showPhase(currentPhase + 1);
             }
         };
 
@@ -1490,252 +1349,12 @@ endblock %} {% block content %}
                 `;
             }).join('');
 
-            // フェーズ3の比較表示も更新
-            updateComparisonView();
-        }
-
-        function updateComparisonView() {
-            const comparisonView = document.getElementById('comparisonView');
-
-            // 自分の決定を合格/不合格に変換
-            const myDecisionText = initialDecisionData.decision; // 直接表示（すでに「一次通過」「見送り」）
-            const myDecisionClass = initialDecisionData.decision === '一次通過' ? 'pass' : 'fail';
-
-            comparisonView.innerHTML = `
-                <div class="comparison-item">
-                    <h5>あなたの意見</h5>
-                    <div class="decision-badge ${myDecisionClass}">
-                        ${myDecisionText}
-                    </div>
-                    <div class="weight-bars-mini">
-                        ${criteriaOrder.map((criterion) => {
-                            const weight = initialDecisionData.weights[criterion] ?? 0;
-                            return `
-                            <div class="weight-bar-mini">
-                                <span class="criterion-mini">${displayName(criterion)}:</span>
-                                <div class="bar-mini">
-                                    <div class="fill-mini" style="width: ${weight}%"></div>
-                                </div>
-                                <span class="value-mini">${weight}%</span>
-                            </div>
-                            `;
-                        }).join('')}
-                    </div>
-                </div>
-                ${botOpinions.map(opinion => {
-                    const decisionText = opinion.decision;
-                    const decisionClass = opinion.decision === '一次通過' ? 'pass' : 'fail';
-                    return `
-                    <div class="comparison-item">
-                        <h5>AI ${opinion.bot_id + 1}</h5>
-                        <div class="decision-badge ${decisionClass}">
-                            ${decisionText}
-                        </div>
-                        <div class="weight-bars-mini">
-                            ${criteriaOrder.map((criterion) => {
-                                const weight = opinion.weights[criterion] ?? 0;
-                                const roundedWeight = Math.round(weight / 10) * 10;
-                                return `
-                                <div class="weight-bar-mini">
-                                    <span class="criterion-mini">${displayName(criterion)}:</span>
-                                    <div class="bar-mini">
-                                        <div class="fill-mini" style="width: ${roundedWeight}%"></div>
-                                    </div>
-                                    <span class="value-mini">${roundedWeight}%</span>
-                                </div>
-                                `;
-                            }).join('')}
-                        </div>
-                    </div>
-                    `;
-                }).join('')}
-            `;
-        }
-
-        // 論点分析パネル用関数（条件2専用）
-        function loadArgumentationAnalysis() {
-            const loadingEl = document.getElementById('analysis-loading');
-            const resultsEl = document.getElementById('analysis-results');
-            const errorEl = document.getElementById('analysis-error');
-            
-            // ローディング表示
-            loadingEl.style.display = 'flex';
-            resultsEl.style.display = 'none';
-            errorEl.style.display = 'none';
-            
-            fetch('/api/argumentation_analysis')
-                .then(response => response.json())
-                .then(data => {
-                    loadingEl.style.display = 'none';
-                    
-                    if (data.success) {
-                        // チャットと同じmarkdown変換を使用
-                        const markdownContent = data.formatted.markdown_content || data.markdown_content || '';
-                        const htmlContent = renderMarkdown(markdownContent);
-                        // チャットメッセージ風のコンテナで包む
-                        resultsEl.innerHTML = `<div class="analysis-message-content">${htmlContent}</div>`;
-                        resultsEl.style.display = 'block';
-                        console.log('[DEBUG] 論点分析結果を表示:', data.analysis);
-                    } else {
-                        throw new Error(data.details || '分析に失敗しました');
-                    }
-                })
-                .catch(error => {
-                    console.error('[ERROR] 論点分析API エラー:', error);
-                    loadingEl.style.display = 'none';
-                    errorEl.style.display = 'block';
-                    errorEl.textContent = `❌ ${error.message}`;
-                });
-        }
-
-        // 条件2がデフォルト（このブランチでは常に条件2）
-        function isCondition2() {
-            return true;
+            // 比較表示は不要（議論分析フェーズが削除されたため）
         }
 
 
-        // チャット初期化関数（Streamlit同等: 初期2メッセージを固定で表示）
-        function initializeChat() {
-            // 比較サイドバーを更新
-            try { updateComparisonView(); } catch (e) {}
-            showLoading(true);
-            const payload = {
-                decision: initialDecisionData ? initialDecisionData.decision : '未定',
-                weights: initialDecisionData ? initialDecisionData.weights : {}
-            };
-            fetch('/setup_chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            })
-            .then(res => res.json())
-            .then(data => {
-                showLoading(false);
-                const chatMessages = document.getElementById('chatMessages');
-                chatMessages.innerHTML = '';
-                conversationCount = 0;
-                document.getElementById('messageCount').textContent = '0';
-                if (data.success && Array.isArray(data.messages)) {
-                    data.messages.forEach(m => addMessage(m.content, false));
-                } else {
-                    addMessage('初期メッセージの準備に失敗しました。', false);
-                }
-            })
-            .catch(err => {
-                console.error('setup_chat エラー:', err);
-                showLoading(false);
-                addMessage('申し訳ございません。初期化に失敗しました。', false);
-            });
-        }
 
-        // チャット機能（条件2では無効化）
-        const chatMessages = document.getElementById('chatMessages');
-        const chatInput = document.getElementById('chatInput');
-        const sendButton = document.getElementById('sendButton');
-        
-        // 条件2ではチャット機能を無効化し、適切な表示制御を行う
-        if (isCondition2()) {
-            if (chatInput) chatInput.disabled = true;
-            if (sendButton) sendButton.disabled = true;
-            
-            // 初期状態では analysis-area を隠しておく（フェーズ2で表示）
-            const analysisArea = document.getElementById('analysis-area');
-            if (analysisArea) {
-                analysisArea.style.display = 'none';
-            }
-        }
-        const messageCount = document.getElementById('messageCount');
-        const finishChat = document.getElementById('finishChat');
 
-        function addMessage(content, isUser = false) {
-            const messageDiv = document.createElement('div');
-            messageDiv.className = isUser ? 'user-message' : 'ai-message';
-
-            const contentDiv = document.createElement('div');
-            contentDiv.className = 'message-content';
-            contentDiv.innerHTML = renderMarkdown(content);
-
-            messageDiv.appendChild(contentDiv);
-            chatMessages.appendChild(messageDiv);
-
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
-
-        function sendMessage() {
-            const message = chatInput.value.trim();
-            if (!message) return;
-
-            addMessage(message, true);
-            chatInput.value = '';
-
-            // ローディング表示開始
-            showLoading(true);
-
-            fetch('/ai_chat', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    message: message,
-                    decision: initialDecisionData.decision,
-                    conversation_count: conversationCount
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                // ローディング表示終了
-                showLoading(false);
-
-                setTimeout(() => {
-                    const aiMsg = data.message || data.response || '...';
-                    addMessage(aiMsg, false);
-                    conversationCount++;
-                    messageCount.textContent = conversationCount;
-
-                    if (conversationCount >= 4) {
-                        finishChat.style.display = 'block';
-                        // 入力は継続可能（最低4回の達成のみ）
-                    }
-                }, 500);
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showLoading(false);
-                addMessage('申し訳ございません。エラーが発生しました。1分ほど時間を空けて同じ内容を送信してみてください。', false);
-            });
-        }
-
-        // ローディング表示制御関数
-        function showLoading(show) {
-            const loadingIndicator = document.getElementById('loadingIndicator');
-            const chatInputContainer = document.querySelector('.chat-input-container');
-
-            if (show) {
-                loadingIndicator.style.display = 'flex';
-                chatInputContainer.classList.add('loading');
-                sendButton.disabled = true;
-                chatInput.disabled = true;
-            } else {
-                loadingIndicator.style.display = 'none';
-                chatInputContainer.classList.remove('loading');
-                sendButton.disabled = false;
-                chatInput.disabled = false;
-            }
-        }
-
-        if (sendButton) {
-            sendButton.addEventListener('click', sendMessage);
-        }
-
-        if (chatInput) {
-            chatInput.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    sendMessage();
-                }
-            });
-        }
 
         // 信頼度スライダー
         const confidenceSlider = document.getElementById('confidence');
@@ -1828,8 +1447,8 @@ endblock %} {% block content %}
 
         // フェーズ変更時の処理
         document.addEventListener('phaseChange', function(e) {
-            if (e.detail.phase === 3) {
-                // フェーズ3（最終意思決定）に入った瞬間の時刻を記録
+            if (e.detail.phase === 2) {
+                // フェーズ2（最終意思決定）に入った瞬間の時刻を記録
                 if (!finalPhaseEnteredAt) {
                     finalPhaseEnteredAt = new Date().toISOString();
                     console.log('✓ 最終意思決定フェーズ入場時刻（client）:', finalPhaseEnteredAt);
