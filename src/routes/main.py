@@ -6,7 +6,11 @@ Handles general pages, questionnaires, and decision forms.
 from flask import Blueprint, render_template, request, redirect, url_for, session, jsonify
 import uuid
 from ..repository.session_repository import session_repository
-from ..utils.data import get_student_for_trial, format_student_for_display
+from ..utils.data import (
+    get_student_for_trial,
+    format_student_for_display,
+    generate_participant_opinions,
+)
 from ..utils.argumentation_analysis import analyze_debate_context, format_analysis_for_display
 from datetime import datetime
 
@@ -482,10 +486,42 @@ def get_argumentation_analysis():
         decision_data = session_data.get('decision_data', {})
         student_data = session_data.get('student_data', {})
         
+        user_decision = decision_data.get('user_decision') or session.get('user_decision')
+        user_weights = decision_data.get('user_weights') or session.get('user_weights') or {}
+        participant_opinions = decision_data.get('participant_opinions') or session.get('participant_opinions') or []
+        participant_decisions = decision_data.get('participant_decisions') or session.get('participant_decisions') or []
+
+        # 参加者意見が欠落している場合は再生成（保存されていない旧セッション対策）
+        if not participant_opinions and user_decision and user_weights:
+            criteria = ['学業成績', '基礎能力テスト', '実践経験', '推薦・評価', '志望動機・フィット']
+            trial_num = session.get('trial') or decision_data.get('trial') or 1
+            participant_opinions = generate_participant_opinions(
+                user_decision,
+                user_weights,
+                criteria,
+                trial_num,
+                session_id
+            )
+            participant_decisions = [op['decision'] for op in participant_opinions]
+            decision_data['participant_opinions'] = participant_opinions
+            decision_data['participant_decisions'] = participant_decisions
+            session_repository.update_session(session_id, decision_data=decision_data)
+
+        # セッションにも反映（UIフェーズ間で利用）
+        if participant_decisions:
+            session['participant_decisions'] = participant_decisions
+        if participant_opinions:
+            session['participant_opinions'] = participant_opinions
+        if user_decision:
+            session['user_decision'] = user_decision
+        if user_weights:
+            session['user_weights'] = user_weights
+
         context = {
-            'user_initial_decision': decision_data.get('user_decision'),
-            'user_initial_weights': decision_data.get('user_weights', {}),
-            'participant_opinions': decision_data.get('participant_opinions', []),
+            'user_initial_decision': user_decision,
+            'user_initial_weights': user_weights,
+            'participant_opinions': participant_opinions,
+            'participant_decisions': participant_decisions,
             'student_info': student_data
         }
         

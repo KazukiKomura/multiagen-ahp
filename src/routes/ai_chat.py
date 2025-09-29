@@ -377,40 +377,42 @@ def setup_chat():
         return jsonify({'error': 'No session'}), 400
 
     data = request.get_json(silent=True) or {}
-    weights = data.get('weights') or {}
-    decision = data.get('decision', '未定')
+    inbound_weights = data.get('weights') or {}
+    inbound_decision = data.get('decision', '未定')
+    inbound_opinions = data.get('participant_opinions') or []
+
+    session_id = session['session_id']
+    sdata = session_repository.get_session(session_id) or {}
+    decision_data = sdata.get('decision_data', {}) or {}
+    student = sdata.get('student_data') or session.get('student_info') or {}
+
+    stored_weights = decision_data.get('user_weights') or session.get('user_weights') or inbound_weights
+    stored_decision = decision_data.get('user_decision') or session.get('user_decision') or inbound_decision
+    participant_opinions = decision_data.get('participant_opinions') or inbound_opinions or []
+    participant_decisions = decision_data.get('participant_decisions') or session.get('participant_decisions') or []
 
     # セッションへ保存（必要なら他画面でも参照可）
-    session['user_weights'] = weights
-    session['user_decision'] = decision
+    if stored_weights:
+        session['user_weights'] = stored_weights
+    if stored_decision:
+        session['user_decision'] = stored_decision
 
     # コンテキストを構築（論理エンジン用）
-    def build_context() -> Dict[str, Any]:
-        session_id = session['session_id']
-        sdata = session_repository.get_session(session_id) or {}
-        decision_data = sdata.get('decision_data', {})
-        student = sdata.get('student_data') or session.get('student_info') or {}
-
-        participant_opinions = decision_data.get('participant_opinions') or []
-        participant_decisions = decision_data.get('participant_decisions') or []
-
-        ctx = {
-            'session_id': session_id,
-            'student_info': student,
-            'user_initial_decision': decision,
-            'user_initial_weights': weights,
-            'participant_decisions': participant_decisions,
-            'participant_opinions': participant_opinions,
-        }
-        return ctx
+    context: Dict[str, Any] = {
+        'session_id': session_id,
+        'student_info': student,
+        'user_initial_decision': stored_decision,
+        'user_initial_weights': stored_weights,
+        'participant_decisions': participant_decisions,
+        'participant_opinions': participant_opinions,
+    }
 
     try:
-        context = build_context()
-        initial_msgs = _build_initial_messages(weights, context)
+        initial_msgs = _build_initial_messages(stored_weights, context)
     except Exception as e:
         print(f"初期メッセージ生成エラー: {e}")
         # エラー時はコンテキストなしで生成
-        initial_msgs = _build_initial_messages(weights)
+        initial_msgs = _build_initial_messages(stored_weights)
 
     session['messages'] = list(initial_msgs)  # 新規開始
     session['conversation_count'] = 0
