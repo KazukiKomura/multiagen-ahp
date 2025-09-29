@@ -1,0 +1,298 @@
+# Method
+
+## System Development
+
+We developed a multi-agent decision support system for evaluating the effectiveness of different argumentation support mechanisms in group decision-making contexts. The system implements a Multi-Criteria Decision Analysis (MCDA) framework enhanced with AI-powered argumentation analysis to facilitate collaborative decisions on student admission scenarios.
+
+The core system architecture consists of a Flask-based web application with three primary components: (1) a decision-making interface implementing weighted linear MCDA methodology with five evaluation criteria, (2) an argumentation engine capable of extracting atomic arguments and identifying attack relationships between conflicting positions, and (3) adaptive AI agents representing diverse value orientations to simulate realistic group dynamics.
+
+To systematically evaluate the impact of different argumentation support approaches, we implemented three distinct experimental conditions by creating separate system branches with varying levels of AI assistance. Each condition maintains identical core functionality while manipulating the nature and extent of argumentation support provided to decision-makers.
+
+## Computational Argumentation Framework
+
+The argumentation engine implements a novel two-track ranking-salience algorithm for identifying and analyzing conflicts in multi-criteria group decision making. The framework consists of five interconnected computational modules designed to extract meaningful debate structures from participant preferences and decisions.
+
+### Atomic Argument Extraction
+
+The system extracts atomic arguments from each participant's decision stance, where an argument $a_i$ is formally defined as:
+
+$$a_i = \langle id_i, source_i, claim_i, criterion_i, weight_i, W_i \rangle$$
+
+where $id_i$ is a unique identifier, $source_i \in \{\text{user}, \text{participant}_1, \text{participant}_2, \text{participant}_3\}$, $claim_i \in \{\text{admit}, \text{reject}\}$, $criterion_i$ represents the most heavily weighted evaluation criterion, $weight_i$ is the importance weight for $criterion_i$, and $W_i$ is the complete weight vector.
+
+The extraction algorithm identifies the top-weighted criterion for each participant:
+
+$$criterion_i = \arg\max_{c \in C} W_i[c]$$
+
+where $C = \{\text{academic}, \text{motivation}, \text{activities}, \text{recommendation}, \text{interview}\}$ represents the set of evaluation criteria.
+
+### Attack Relationship Determination
+
+Attack relationships between arguments are established based on claim contradictions. For any two arguments $a_i$ and $a_j$, an attack relationship $(a_i, a_j)$ exists if and only if:
+
+$$\text{attacks}(a_i, a_j) \iff claim_i \neq claim_j$$
+
+The complete attack graph $A$ is constructed as:
+
+$$A = \{(a_i, a_j) \mid a_i, a_j \in \text{Arguments}, i \neq j, \text{attacks}(a_i, a_j)\}$$
+
+### Value Similarity Clustering
+
+Participants are clustered based on value preference similarity using Kendall's τ distance to measure ranking correlation. For user weights $W_u$ and participant weights $W_p$, the value rank distance is calculated as:
+
+$$\tau(W_u, W_p) = \frac{|\{(i,j): (W_u[i] - W_u[j])(W_p[i] - W_p[j]) < 0\}|}{\binom{|C|}{2}}$$
+
+where the numerator counts discordant pairs between the two preference rankings, and the denominator normalizes by the total number of criterion pairs.
+
+The clustering algorithm implements relative partitioning to ensure balanced group assignment:
+
+\begin{algorithm}
+\caption{Value Similarity Clustering}
+\begin{algorithmic}
+\STATE \textbf{Input:} User weights $W_u$, participant arguments $\{a_1, a_2, \ldots, a_n\}$
+\STATE \textbf{Output:} Groups $G_{similar}$, $G_{different}$
+
+\STATE Calculate $\tau_i = \tau(W_u, W_i)$ for each participant $i$
+\STATE Sort participants by $\tau_i$ in ascending order
+\IF{$n = 1$}
+    \STATE $G_{similar} = \{a_1\}$, $G_{different} = \emptyset$
+\ELSIF{$n = 2$}
+    \STATE $G_{similar} = \{a_1\}$, $G_{different} = \{a_2\}$
+\ELSE
+    \STATE $G_{similar} = \{a_1\}$
+    \STATE $G_{different} = \{a_2, a_3, \ldots, a_n\}$
+\ENDIF
+\RETURN $G_{similar}$, $G_{different}$
+\end{algorithmic}
+\end{algorithm}
+
+### Criterion Salience Scoring
+
+For each evaluation criterion $c$ and group $g$, the salience score quantifies the conflict intensity arising from weight differences:
+
+$$S(c, g) = \sum_{p \in G_g} \left(\frac{W_u[c]}{100}\right) \times |W_u[c] - W_p[c]|$$
+
+where $G_g$ represents the set of participants in group $g$, $W_u[c]$ is the user's weight for criterion $c$, and $W_p[c]$ is participant $p$'s weight for the same criterion. The value coefficient $\frac{W_u[c]}{100}$ ensures that conflicts on highly valued criteria receive greater salience scores.
+
+### Conflict Point Extraction
+
+The top conflict points are identified by selecting the highest salience criterion from each group:
+
+$$c^*_g = \arg\max_{c \in C} S(c, g)$$
+
+For each top criterion $c^*_g$, the primary opponent is identified as:
+
+$$p^*_g = \arg\max_{p \in G_g} |W_u[c^*_g] - W_p[c^*_g]|$$
+
+The final conflict point structure $CP_g$ for group $g$ contains:
+
+$$CP_g = \langle c^*_g, S(c^*_g, g), W_u[c^*_g], W_{p^*_g}[c^*_g], p^*_g \rangle$$
+
+### Two-Track Ranking-Salience Algorithm
+
+The complete argumentation analysis follows a systematic four-step process:
+
+\begin{algorithm}
+\caption{Two-Track Ranking-Salience Analysis}
+\begin{algorithmic}
+\STATE \textbf{Input:} Decision context $\{W_u, \{W_p\}_{p=1}^n, \{claim_p\}_{p=1}^n\}$
+\STATE \textbf{Output:} Structured conflict analysis
+
+\STATE \textbf{Step 1:} Extract atomic arguments $A = \{a_u\} \cup \{a_p\}_{p=1}^n$
+\STATE \textbf{Step 2:} Cluster participants into $G_{similar}$ and $G_{different}$ using Kendall's τ
+\STATE \textbf{Step 3:} Calculate salience scores $S(c,g)$ for all criteria and groups
+\STATE \textbf{Step 4:} Extract top conflict points $\{CP_g\}$ and generate analysis summary
+
+\RETURN Ranked conflict points with opponent identification and salience metrics
+\end{algorithmic}
+\end{algorithm>
+
+This algorithmic framework enables systematic identification of the most salient points of disagreement while maintaining computational efficiency for real-time interaction in Condition 1 and comprehensive analysis generation in Condition 2.
+
+## Experimental Conditions
+
+The system was configured to test three levels of argumentation support through controlled manipulation of the decision support interface:
+
+**Condition 1 (Interactive Argumentation Support)** provides full conversational AI facilitation through a four-phase decision process. Participants engage in real-time dialogue with an AI facilitator that implements procedural justice principles, requiring a minimum of four conversational exchanges. The system employs dynamic argument mining to identify conflict points and generates contextually appropriate responses to guide participants through systematic consideration of opposing viewpoints.
+
+**Condition 2 (Static Argumentation Analysis)** offers automated conflict analysis without interactive dialogue. The system executes computational argumentation algorithms to extract atomic arguments, determine attack relationships, and present structured visualizations of decision conflicts. Participants receive comprehensive analysis of value differences and opposing positions through static presentations rather than conversational interaction.
+
+**Condition 3 (Baseline MCDA-only)** implements standard multi-criteria decision making without argumentation support. This condition serves as a control by providing only basic weighted linear MCDA functionality with opinion review, eliminating the argumentation support phase entirely through a reduced three-phase process.
+
+## Experimental Design
+
+We conducted a between-subjects experiment with 150 participants randomly assigned to the three experimental conditions (n=50 per condition). The study employed a 3×4 mixed design with argumentation support type as the between-subjects factor and decision trial as the within-subjects factor (one practice trial plus three experimental trials).
+
+## Participants
+
+One hundred fifty adults aged 18-65 were recruited through online platforms and provided informed consent for participation. Inclusion criteria required basic computer literacy and Japanese language proficiency, while exclusion criteria eliminated individuals with prior experience in the experimental task domain or professional involvement in student admissions. Participants received monetary compensation for their time and were randomly assigned to conditions using cryptographic session identifiers to ensure balanced allocation.
+
+## Materials
+
+### Decision Task Stimuli
+
+Participants made binary admission decisions (admit/reject) for student candidates using authentic profiles derived from a real admission dataset. Each candidate profile contained standardized scores across five evaluation criteria: Academic Performance (学業成績), Motivation \& Fit (志望動機・フィット), Extracurricular Activities (課外活動), Letters of Recommendation (推薦状), and Interview Evaluation (面接評価). All scores were normalized to a 1-5 scale.
+
+We implemented a strategic case selection algorithm to maximize decision difficulty and ensure meaningful conflict between criteria. The difficulty score combines criterion variance with scale position to identify boundary cases:
+
+$$\text{Difficulty}(s) = \sigma^2(s) \times (1 + |\mu(s) - 2.5|)$$
+
+where $s = [s_1, s_2, s_3, s_4, s_5]$ represents the vector of normalized criterion scores, $\sigma^2(s) = \frac{1}{5}\sum_{i=1}^5 (s_i - \mu(s))^2$ is the sample variance, and $\mu(s) = \frac{1}{5}\sum_{i=1}^5 s_i$ is the mean score across criteria. The term $|\mu(s) - 2.5|$ measures deviation from the scale midpoint (2.5 on a 1-5 scale).
+
+Candidates were ranked by difficulty score and those with $\text{Difficulty}(s) \geq 1.5$ were selected for experimental trials. This threshold ensures sufficient inter-criterion variance ($\sigma^2 \geq 0.75$) while focusing on ambiguous cases near the decision boundary.
+
+### AI Agent Configuration
+
+Three AI agents were programmed to represent distinct value orientations through systematic weight distribution patterns. Agent weights were generated deterministically based on session identifiers to ensure reproducibility while maintaining realistic diversity in group perspectives.
+
+The weight generation algorithm implements three distance levels relative to participant preferences:
+
+\begin{algorithm}
+\caption{AI Agent Weight Generation}
+\begin{algorithmic}
+\STATE \textbf{Input:} User weights $w_u$, distance level $d \in \{\text{close, medium, far}\}$
+\STATE \textbf{Output:} Agent weights $w_a$ where $\sum w_a = 100$
+
+\IF{$d = \text{close}$}
+    \FOR{each criterion $i$}
+        \STATE $w_a[i] \sim \text{Uniform}(w_u[i] \pm 15\%)$
+    \ENDFOR
+\ELSIF{$d = \text{medium}$}
+    \FOR{each criterion $i$}
+        \STATE $w_a[i] \sim \text{Uniform}(w_u[i] \pm 30\%)$
+    \ENDFOR
+\ELSE{$d = \text{far}$}
+    \FOR{each criterion $i$}
+        \STATE $w_a[i] \sim \text{Uniform}(80 - w_u[i] \pm 10\%)$ \COMMENT{Inverse correlation}
+    \ENDFOR
+\ENDIF
+
+\STATE Normalize $w_a$ to sum to 100 with 10\% increments
+\RETURN $w_a$
+\end{algorithmic}
+\end{algorithm}
+
+Agent decisions were generated using condition-specific algorithms. For practice trials, decisions were randomized while preventing 2-2 ties among all four participants (user plus three agents). For experimental trials, all AI agents systematically opposed the participant's initial decision to maximize conflict and encourage deliberation.
+
+## Procedure
+
+### Phase 1: Initial Decision Making
+
+All participants began by reviewing a candidate profile and establishing their decision preferences through two sequential tasks. First, participants allocated importance weights across the five evaluation criteria using interactive sliders constrained to total 100%, with minimum 10% and maximum 70% per criterion to ensure balanced consideration across all criteria.
+
+The weighted linear MCDA model for candidate evaluation follows:
+
+$$V(x) = \sum_{i=1}^{5} w_i \cdot s_i(x)$$
+
+where $V(x)$ represents the overall value score for candidate $x$, $w_i$ is the normalized weight for criterion $i$ such that $\sum_{i=1}^{5} w_i = 1$, and $s_i(x)$ is the standardized score for candidate $x$ on criterion $i$. The weight constraints ensure $0.1 \leq w_i \leq 0.7$ for all criteria $i$.
+
+Second, participants made a binary admission decision (admit or reject) and provided a confidence rating on a 1-100 scale, creating potential inconsistency between the calculated MCDA score and intuitive judgment to enable meaningful argumentation.
+
+### Phase 2: Opinion Review
+
+The system presented decisions and weight distributions from three AI agents, each representing different value orientations as described above. Participants could review agent positions and reasoning statements without time restrictions but could not modify their own positions during this phase. This phase was identical across all experimental conditions to ensure consistent exposure to opposing viewpoints.
+
+### Phase 3: Argumentation Support (Condition-Dependent)
+
+**Condition 1** participants engaged in conversational interaction with an AI facilitator implementing procedural justice principles. The system required minimum four conversational turns while allowing unlimited additional interaction. The AI facilitator generated contextually appropriate questions and clarifications based on real-time argument mining of the discussion content. Conversation continued until participants explicitly chose to proceed to final decision making.
+
+**Condition 2** participants received automated analysis of argument structure and conflict points without interactive dialogue. The system executed computational argumentation algorithms to extract atomic arguments from all participant positions, identify attack relationships between conflicting claims, and calculate conflict intensity based on weight differences. Results were presented through structured visualizations showing value distances, conflict summaries, and areas requiring consideration.
+
+**Condition 3** participants proceeded directly to final decision making without argumentation support, implementing a reduced three-phase process that eliminated the argumentation analysis entirely.
+
+### Phase 4: Final Decision Making
+
+All participants had the opportunity to revise their initial decisions and weight allocations based on the preceding phases. The interface replicated Phase 1 functionality, allowing complete modification of both criterion weights and admission decisions. Participants provided final confidence ratings and optional reasoning explanations before proceeding to post-task questionnaires.
+
+## Dependent Measures
+
+### Behavioral Outcome Variables
+
+Primary decision metrics included decision change frequency (binary indicator of initial versus final decision difference), weight change magnitude calculated as Euclidean distance between initial and final weight vectors, and confidence change computed as the difference between final and initial confidence ratings.
+
+Weight change magnitude was calculated as:
+
+$$\Delta W = \sqrt{\sum_{i=1}^{5} (w_{i,\text{final}} - w_{i,\text{initial}})^2}$$
+
+where $w_{i,\text{final}}$ and $w_{i,\text{initial}}$ represent final and initial weights for criterion $i$, respectively.
+
+Engagement metrics captured behavioral involvement including phase completion times, and condition-specific measures such as conversation turn counts and message lengths for Condition 1, and analysis viewing duration for Condition 2.
+
+### Subjective Experience Measures
+
+Post-task questionnaires assessed five domains of subjective experience using validated scales adapted for the experimental context. All multi-item scales were constructed using additive scoring with reliability verification.
+
+**Procedural Justice (SMOJ)** employed an eight-item adaptation of Colquitt's organizational justice scale on 7-point Likert scales (1 = completely disagree, 7 = completely agree). The composite score was calculated as:
+
+$$\text{SMOJ}_i = \frac{1}{8}\sum_{j=1}^{8} x_{ij}$$
+
+where $x_{ij}$ represents participant $i$'s response to item $j$. Internal consistency was assessed using Cronbach's alpha:
+
+$$\alpha = \frac{k}{k-1}\left(1 - \frac{\sum_{j=1}^k \sigma_{x_j}^2}{\sigma_X^2}\right)$$
+
+where $k = 8$ is the number of items, $\sigma_{x_j}^2$ is the variance of item $j$, and $\sigma_X^2$ is the variance of the total score.
+
+**Explanation Satisfaction (XSS)** used three items measuring comprehensibility, question addressing, and decision-making utility of AI-generated explanations. The scale score followed the same additive construction with reliability verification.
+
+**Outcome Favorability** captured preference alignment and personal advantage through two items, computed as the mean response across items.
+
+**Decision Satisfaction (SWD)** employed a six-item adaptation measuring multiple dimensions of decision quality:
+
+$$\text{SWD}_i = \frac{1}{6}\sum_{j=1}^{6} y_{ij}$$
+
+where $y_{ij}$ represents responses to items assessing information sufficiency, optimality, value alignment, implementability, involvement, and overall satisfaction.
+
+**Cognitive Resource Depletion** was measured using an innovative continuous gas tank visualization interface. Participants indicated remaining mental energy on a 0-100 scale through interactive clicking, with the response value $z_i$ directly recorded without transformation. This measure provided a direct psychological assessment of cognitive load following the experimental manipulation.
+
+### Control Variables
+
+Pre-task surveys collected demographic information, AI experience metrics including usage frequency over 7-day and 30-day periods, and AI literacy measures assessing understanding of machine learning fundamentals and numerical reasoning competency.
+
+## Data Analysis
+
+### Statistical Modeling Framework
+
+Behavioral data were analyzed using a hierarchical modeling approach to account for the nested structure of trials within participants. The primary decision change outcome followed a logistic regression model:
+
+$$\text{logit}(P(\text{Decision Change}_{ij} = 1)) = \beta_0 + \beta_1 \text{Condition1}_i + \beta_2 \text{Condition2}_i + \gamma_j + \epsilon_{ij}$$
+
+where $i$ indexes participants, $j$ indexes trials, $\text{Condition1}_i$ and $\text{Condition2}_i$ are indicator variables for the two argumentation conditions (with Condition 3 as reference), $\gamma_j$ represents trial-level fixed effects, and $\epsilon_{ij}$ captures residual variance.
+
+Weight change magnitude was modeled using linear mixed-effects regression:
+
+$$\Delta W_{ij} = \beta_0 + \beta_1 \text{Condition1}_i + \beta_2 \text{Condition2}_i + \beta_3 \text{Trial}_j + u_i + \epsilon_{ij}$$
+
+where $u_i \sim N(0, \sigma_u^2)$ represents random intercepts for participants and $\epsilon_{ij} \sim N(0, \sigma_e^2)$ represents residual error.
+
+### Planned Contrasts and Effect Sizes
+
+Planned orthogonal contrasts tested specific hypotheses:
+- $C_1$: Any argumentation support vs. baseline: $\frac{1}{2}(\mu_1 + \mu_2) - \mu_3$
+- $C_2$: Interactive vs. static argumentation: $\mu_1 - \mu_2$
+
+Effect sizes were calculated using Cohen's $d$ for continuous outcomes:
+
+$$d = \frac{\bar{X}_1 - \bar{X}_2}{\sqrt{\frac{(n_1-1)s_1^2 + (n_2-1)s_2^2}{n_1+n_2-2}}}$$
+
+and odds ratios for binary outcomes:
+
+$$\text{OR} = \frac{P(\text{change}|\text{treatment})/P(\text{no change}|\text{treatment})}{P(\text{change}|\text{control})/P(\text{no change}|\text{control})}$$
+
+### Mediation Analysis
+
+Engagement metrics were hypothesized to mediate the relationship between condition assignment and satisfaction outcomes. The mediation model followed Baron and Kenny's framework with bias-corrected bootstrap confidence intervals:
+
+$$Y_i = c'X_i + bM_i + \epsilon_i$$
+$$M_i = aX_i + \epsilon_{M_i}$$
+
+where $Y_i$ represents satisfaction outcomes, $X_i$ represents condition assignment, $M_i$ represents engagement mediators, and the indirect effect $ab$ was tested using 5,000 bootstrap samples with bias-corrected 95% confidence intervals.
+
+### Multiple Comparison Corrections
+
+Type I error control employed the Bonferroni correction for family-wise error rate:
+
+$$\alpha_{adj} = \frac{\alpha}{k}$$
+
+where $k$ represents the number of planned comparisons within each outcome family. For the primary decision outcomes ($k = 3$ comparisons), the adjusted significance level was $\alpha_{adj} = 0.0167$.
+
+All analyses employed intention-to-treat principles with complete case analysis for primary outcomes, supplemented by multiple imputation sensitivity analyses for missing data patterns. Model assumptions were verified through residual analysis, and robust standard errors were employed when heteroscedasticity was detected.
